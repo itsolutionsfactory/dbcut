@@ -1,0 +1,6 @@
+sqlalchemy
+sqlalchemy_utils
+alembic
+click
+mysqlclient
+psycopg2
