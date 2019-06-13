@@ -211,6 +211,10 @@ class Database(object):
                 bind = self.engine
             self.Model.prepare(bind, reflect=True)
             if bind.dialect.name == 'mysql' and self.dialect != bind.dialect.name:
+                for table in self.tables.values():
+                    for constraint in table.constraints:
+                        if constraint.name:
+                            constraint.name = conv(constraint.name)
                 self.__fix_indexes__()
             self._reflected = True
 
@@ -220,6 +224,7 @@ class Database(object):
             for index in table.indexes:
                 indexes.append(index)
         return indexes
+
     def create_all(self, bind=None, **kwargs):
         """Creates all tables. """
         if bind is None:
