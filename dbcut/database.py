@@ -8,6 +8,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.schema import conv
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Query
@@ -16,7 +17,8 @@ from sqlalchemy.orm.exc import UnmappedClassError
 
 from .compiler import *  # noqa
 from .compat import reraise
-from .helpers import cached_property, merge_dicts, get_table_name, render_query
+from .helpers import (cached_property, merge_dicts, get_table_name,
+                      render_query, generate_valid_index_name)
 
 
 __all__ = ['Database']
@@ -199,10 +201,16 @@ class Database(object):
             if bind is None:
                 bind = self.engine
             self.Model.prepare(bind, reflect=True)
-            if bind.dialect.name != self.dialect and self.dialect == "sqlite":
-                _fix_sqlite_indexes(*self.tables.values())
+            if bind.dialect.name == 'mysql' and self.dialect != bind.dialect.name:
+                self.__fix_indexes__()
             self._reflected = True
 
+    def get_all_indexes(self):
+        indexes = []
+        for table in self.tables.values():
+            for index in table.indexes:
+                indexes.append(index)
+        return indexes
     def create_all(self, bind=None, **kwargs):
         """Creates all tables. """
         if bind is None:
@@ -260,6 +268,10 @@ class Database(object):
         if self.connector is not None:
             engine = self.engine
         return '<%s engine=%r>' % (self.__class__.__name__, engine)
+
+    def __fix_indexes__(self):
+        for index in self.get_all_indexes():
+            index.name = conv(generate_valid_index_name(index, self.engine.dialect))
 
 
 class EngineConnector(object):
@@ -321,14 +333,6 @@ class EngineConnector(object):
             self._engine = engine = create_engine(info, **options)
             self._connected_for = (uri, echo)
             return engine
-
-
-def _fix_sqlite_indexes(*tables):
-    # Fix indexes namespace : new_index_name = table_name + index_name
-    for table in tables:
-        for index in table.indexes:
-            if not index.name.startswith(table.name):
-                index.name = '%s_%s' % (table.name, index.name)
 
 
 def _include_sqlalchemy(db):

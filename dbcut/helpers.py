@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import hashlib
 import logging
 import re
-
 import sys
 import time
 from functools import update_wrapper
@@ -10,7 +10,7 @@ import click
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from .compat import reraise
+from .compat import reraise, to_unicode
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)
@@ -207,3 +207,18 @@ def render_query(statement, bind=None, reindent=True):
         return sqlparse.format(raw_sql, reindent=reindent)
     except ImportError:  # pragma: no cover
         return raw_sql
+
+
+def generate_valid_index_name(index, dialect):
+    table_name = index.table.name
+    columns_names = '_'.join([cn.name for cn in index.columns])
+    if index.unique:
+        full_index_name = "%s_%s_unique_idx" % (table_name, columns_names)
+    else:
+        full_index_name = "%s_%s_idx" % (table_name, columns_names)
+    short_index_name = "%s_%s_idx" % (table_name, short_hash(full_index_name))
+    return short_index_name
+
+
+def short_hash(string):
+    return hashlib.sha1(to_unicode(string).encode("utf-8")).hexdigest()[:10]
