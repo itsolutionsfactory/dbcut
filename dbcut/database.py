@@ -18,8 +18,7 @@ from sqlalchemy.orm.exc import UnmappedClassError
 from .compiler import *  # noqa
 from .compat import reraise
 from .helpers import (cached_property, merge_dicts, get_table_name,
-                      render_query, generate_valid_index_name,
-                      generate_valid_fk_constraint_name)
+                      render_query, generate_valid_index_name)
 
 
 __all__ = ['Database']
@@ -213,7 +212,6 @@ class Database(object):
             self.Model.prepare(bind, reflect=True)
             if bind.dialect.name == 'mysql' and self.dialect != bind.dialect.name:
                 self.__fix_indexes__()
-                self.__fix_foreign_keys__()
             self._reflected = True
 
     def get_all_indexes(self):
@@ -222,14 +220,6 @@ class Database(object):
             for index in table.indexes:
                 indexes.append(index)
         return indexes
-
-    def get_all_foreign_keys(self):
-        foreign_keys = []
-        for table in self.tables.values():
-            for fk in table.foreign_keys:
-                foreign_keys.append(fk)
-        return foreign_keys
-
     def create_all(self, bind=None, **kwargs):
         """Creates all tables. """
         if bind is None:
@@ -291,13 +281,6 @@ class Database(object):
     def __fix_indexes__(self):
         for index in self.get_all_indexes():
             index.name = conv(generate_valid_index_name(index, self.engine.dialect))
-
-    def __fix_foreign_keys__(self):
-        for fk in self.get_all_foreign_keys():
-            fkc = fk.constraint
-            valid_name = generate_valid_fk_constraint_name(fkc, self.engine.dialect)
-            fk.name = valid_name
-            fkc.name = valid_name
 
 
 class EngineConnector(object):

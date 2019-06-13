@@ -9,7 +9,6 @@ from functools import update_wrapper
 import click
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
-from alembic.util import sqla_compat
 
 from .compat import reraise, to_unicode
 
@@ -219,29 +218,6 @@ def generate_valid_index_name(index, dialect):
         full_index_name = "%s_%s_idx" % (table_name, columns_names)
     short_index_name = "%s_%s_idx" % (table_name, short_hash(full_index_name))
     return short_index_name
-
-
-def generate_valid_fk_constraint_name(constraint, dialect):
-    if len(constraint.name) <= dialect.max_identifier_length:
-        return constraint.name
-    (
-        source_schema,
-        source_table,
-        local_cols,
-        target_schema,
-        referent_table,
-        remote_cols,
-        onupdate,
-        ondelete,
-        deferrable,
-        initially,
-    ) = sqla_compat._fk_spec(constraint)
-    local_cols_name = "_".join(local_cols)
-    remote_cols_name = "_".join(remote_cols)
-    fullname_tpl = "%s_%s_refs_%s_%s"
-    short_name_tpl = "%s_refs_%s_%s"
-    fullname = fullname_tpl % (source_table, local_cols_name, referent_table, remote_cols_name)
-    return short_name_tpl % (local_cols_name, remote_cols_name, short_hash(fullname))
 
 
 def short_hash(string):
