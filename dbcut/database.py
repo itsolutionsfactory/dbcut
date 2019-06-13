@@ -237,13 +237,8 @@ class Database(object):
         with bind.connect() as con:
             trans = con.begin()
             try:
-                if bind.dialect.name == "postgresql":
-                    con.execute('TRUNCATE {} RESTART IDENTITY CASCADE;'.format(
-                        ','.join(table.name
-                                 for table in self.tables.values())))
-                else:
-                    for table in self.tables.values():
-                        con.execute(table.delete())
+                for table in reversed(self.metadata.sorted_tables):
+                    con.execute(table.delete())
                 trans.commit()
             except:
                 trans.rollback()
