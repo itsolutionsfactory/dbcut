@@ -341,40 +341,6 @@ class EngineConnector(object):
             self._connected_for = (uri, echo)
             return engine
 
-
-def _include_sqlalchemy(db):
-    import sqlalchemy
-
-    for module in sqlalchemy, sqlalchemy.orm:
-        for key in module.__all__:
-            if not hasattr(db, key):
-                setattr(db, key, getattr(module, key))
-    db.event = sqlalchemy.event
-    # Note: db.Table does not attempt to be a SQLAlchemy Table class.
-
-    def _make_table(db):
-        def _make_table(*args, **kwargs):
-            if len(args) > 1 and isinstance(args[1], db.Column):
-                args = (args[0], db.metadata) + args[1:]
-            kwargs.setdefault('extend_existing', True)
-            info = kwargs.pop('info', None) or {}
-            info.setdefault('autoreflect', False)
-            kwargs['info'] = info
-            table = sqlalchemy.Table(*args, **kwargs)
-            db.tables[table.name] = table
-            return table
-        return _make_table
-
-    db.Table = _make_table(db)
-
-    class Column(sqlalchemy.Column):
-        def __init__(self, *args, **kwargs):
-            kwargs.setdefault("nullable", False)
-            super(Column, self).__init__(*args, **kwargs)
-
-    db.Column = Column
-
-
 class _BoundDeclarativeMeta(DeclarativeMeta):
 
     def __new__(cls, name, bases, d):
