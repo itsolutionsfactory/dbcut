@@ -15,7 +15,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.orm import sessionmaker, class_mapper, scoped_session
 from sqlalchemy.orm.exc import UnmappedClassError
 
-from .compiler import *  # noqa
+
 from .compat import reraise
 from .helpers import (cached_property, merge_dicts, get_table_name,
                       render_query, generate_valid_index_name)
