@@ -4,7 +4,6 @@ import warnings
 
 from sqlalchemy import create_engine
 
-from .alembic import alembic_sync_schema
 from .helpers import green
 
 
@@ -29,5 +28,3 @@ def sync_db(ctx):
 
     ctx.new_db.reflect(bind=from_engine)
     ctx.new_db.create_all(checkfirst=True)
-
-    alembic_sync_schema(ctx, from_engine, to_engine)

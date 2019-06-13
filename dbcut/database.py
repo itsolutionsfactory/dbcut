@@ -4,8 +4,6 @@ from __future__ import absolute_import
 import sys
 import threading
 
-from alembic.migration import MigrationContext
-from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect, MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.schema import conv
@@ -160,11 +158,6 @@ class Database(object):
         self.Model._db = self
         self.models = {}
         self.tables = {}
-
-    @property
-    def op(self):
-        ctx = MigrationContext.configure(self.engine.connect())
-        return Operations(ctx)
 
     @property
     def engine(self):
