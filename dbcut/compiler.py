@@ -31,3 +31,24 @@ def compile_sqlite_longtext(type_, compiler, **kw):
 @compiles(mysql.VARCHAR, 'sqlite')
 def compile_sqlite_varchar(type_, compiler, **kw):
     return "VARCHAR(%s)" % type_.length
+
+
+@compiles(mysql.TINYINT, 'postgresql')
+@compiles(mysql.SMALLINT, 'postgresql')
+def compile_postgresql_tinyint(type_, compiler, **kw):
+    return "SMALLINT"
+
+
+@compiles(mysql.LONGTEXT, 'postgresql')
+def compile_postgresql_longtext(type_, compiler, **kw):
+    return "TEXT"
+
+
+@compiles(mysql.VARCHAR, 'postgresql')
+def compile_postgresql_varchar(type_, compiler, **kw):
+    return "VARCHAR(%s)" % type_.length
+
+
+@compiles(mysql.DATETIME, 'postgresql')
+def compile_postgresql_datetime(type_, compiler, **kw):
+    return "TIMESTAMP WITHOUT TIME ZONE"
