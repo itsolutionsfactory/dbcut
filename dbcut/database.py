@@ -6,7 +6,7 @@ import threading
 
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.schema import conv
 from sqlalchemy.ext.automap import automap_base
@@ -135,6 +135,14 @@ class Database(object):
     query_class = None
     query_collection_class = None
 
+    convention = {
+        "ix": 'ix_%(column_0_label)s',
+        "uq": "uq_%(table_name)s_%(column_0_name)s",
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        "pk": "pk_%(table_name)s"
+    }
+
     def __init__(self, uri=None, session_options=None):
         self.connector = None
         self._reflected = False
@@ -146,6 +154,7 @@ class Database(object):
         self._engine_lock = threading.Lock()
         self.Model = automap_base(cls=BaseModel,
                                   name='Model',
+                                  metadata=MetaData(naming_convention=self.convention),
                                   metaclass=_BoundDeclarativeMeta)
         self.Model.query = QueryProperty(self)
         self.Model._db = self
