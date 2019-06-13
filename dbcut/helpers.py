@@ -216,9 +216,4 @@ def generate_valid_index_name(index, dialect):
         full_index_name = "%s_%s_unique_idx" % (table_name, columns_names)
     else:
         full_index_name = "%s_%s_idx" % (table_name, columns_names)
-    short_index_name = "%s_%s_idx" % (table_name, short_hash(full_index_name))
-    return short_index_name
-
-
-def short_hash(string):
-    return hashlib.sha1(to_unicode(string).encode("utf-8")).hexdigest()[:10]
+    return full_index_name
