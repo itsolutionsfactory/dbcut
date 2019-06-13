@@ -224,8 +224,14 @@ class Database(object):
             bind = self.engine
         self.metadata.create_all(bind=bind, **kwargs)
 
+    def drop_all(self, bind=None, **kwargs):
+        """Proxy for metadata.drop_all"""
+        if bind is None:
+            bind = self.engine
+        self.metadata.drop_all(bind=bind, **kwargs)
+
     def delete_all(self, bind=None, **kwargs):
-        """Drop all tables. """
+        """Delete all table content."""
         if bind is None:
             bind = self.engine
         with bind.connect() as con:

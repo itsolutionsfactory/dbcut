@@ -27,4 +27,5 @@ def sync_db(ctx):
     create_database_if_not_exists(ctx, to_engine)
 
     ctx.new_db.reflect(bind=from_engine)
-    ctx.new_db.create_all(checkfirst=True)
+    ctx.new_db.drop_all(bind=to_engine, checkfirst=True)
+    ctx.new_db.create_all(bind=to_engine, checkfirst=True)
