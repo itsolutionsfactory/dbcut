@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 from alembic.autogenerate import compare_metadata
-from alembic.migration import MigrationContext
+from alembic.runtime.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.util import sqla_compat
 from sqlalchemy import MetaData
