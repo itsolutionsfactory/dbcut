@@ -8,34 +8,18 @@ from .database import Database
 click.disable_unicode_literals_warning = True
 
 
-CONTEXT_SETTINGS = dict(auto_envvar_prefix='dbcut',
-                        help_option_names=['-h', '--help'])
+CONTEXT_SETTINGS = dict(auto_envvar_prefix='dbcut', help_option_names=['-h', '--help'])
 
 
 class MigrationContext(Context):
 
     @cached_property
-    def new_db(self):
-        return Database(uri=self.new_db_url)
+    def dest_db(self):
+        return Database(uri=self.dest_db_url)
 
     @cached_property
-    def current_db(self):
-        return Database(uri=self.current_db_url)
-
-    @cached_property
-    def new_db_name(self):
-        return self.new_db.engine.url.database
-
-    @cached_property
-    def current_db_name(self):
-        return self.current_db.engine.url.database
-
-    @cached_property
-    def current_tables(self):
-        """ Return a namespace with all tables classes"""
-        self.current_db.reflect()
-        sorted_tables = self.current_db.metadata.sorted_tables
-        return dict((t.name, t) for t in sorted_tables)
+    def src_db(self):
+        return Database(uri=self.src_db_url)
 
 
 pass_context = make_pass_decorator(MigrationContext)
@@ -44,8 +28,8 @@ pass_context = make_pass_decorator(MigrationContext)
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('--schema-only', is_flag=True, default=False,
               help="Migrates only the schema, no data")
-@click.option('--current-db-url', help='the url for your current database.')
-@click.option('--new-db-url', help='the url for your new database.')
+@click.option('-s', '--src-db-url', help='source database url')
+@click.option('-d', '--dest-db-url', help='destination database url')
 @click.option('--chunk', type=int, default=100000, show_default=True,
               help="Defines the chunk size")
 @click.option('-y', '--force-yes', is_flag=True, default=False,

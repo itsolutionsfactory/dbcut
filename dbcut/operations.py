@@ -20,12 +20,12 @@ def create_database_if_not_exists(ctx, engine):
 
 
 def sync_db(ctx):
-    from_engine = create_engine(ctx.current_db.engine.url)
-    to_engine = create_engine(ctx.new_db.engine.url)
+    from_engine = create_engine(ctx.src_db.engine.url)
+    to_engine = create_engine(ctx.dest_db.engine.url)
 
     # Create database
     create_database_if_not_exists(ctx, to_engine)
 
-    ctx.new_db.reflect(bind=from_engine)
-    ctx.new_db.drop_all(bind=to_engine, checkfirst=True)
-    ctx.new_db.create_all(bind=to_engine, checkfirst=True)
+    ctx.dest_db.reflect(bind=from_engine)
+    ctx.dest_db.drop_all(bind=to_engine, checkfirst=True)
+    ctx.dest_db.create_all(bind=to_engine, checkfirst=True)
