@@ -26,8 +26,6 @@ pass_context = make_pass_decorator(MigrationContext)
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('--schema-only', is_flag=True, default=False,
-              help="Migrates only the schema, no data")
 @click.option('-s', '--src-db-url', help='source database url')
 @click.option('-d', '--dest-db-url', help='destination database url')
 @click.option('--chunk', type=int, default=100000, show_default=True,
