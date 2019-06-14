@@ -3,3 +3,4 @@ sqlalchemy_utils
 click
 mysqlclient
 psycopg2
+mlalchemy
