@@ -48,5 +48,10 @@ def main(ctx, **kwargs):
     """Extract a lightweight subset of your production DB for development and testing purpose."""
     ctx.update_options(**kwargs)
     ctx.configure_log()
-    ctx.confirm("Continue to migrate your database?", default=True)
+    src_uri = ctx.config["databases"]["source_uri"]
+    dest_uri = ctx.config["databases"]["destination_uri"]
+    ctx.confirm(
+        "From -> '%s'\nTo -> '%s'\n\nContinue to extract data ?" % (src_uri, dest_uri),
+        default=False,
+    )
     sync_db(ctx)
