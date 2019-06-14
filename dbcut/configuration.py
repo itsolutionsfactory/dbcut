@@ -7,7 +7,7 @@ from io import open
 import yaml
 import logging
 
-from .compact import reraise
+from .compat import reraise
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class Configuration(dict):
         try:
             conf = {}
             with open(filename, encoding="utf-8") as config_file:
-                conf.merge(yaml.safe_load(config_file.read()))
+                conf = yaml.safe_load(config_file.read())
             for k, v in conf.items():
                 self[k] = v
         except IOError as e:
