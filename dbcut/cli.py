@@ -40,8 +40,6 @@ def load_configuration_file(ctx, param, value):
     type=click.Path(writable=False, readable=True),
     required=True,
 )
-@click.option("-s", "--src-db-url", help="source database url")
-@click.option("-d", "--dest-db-url", help="destination database url")
 @click.version_option()
 @click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
 @click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
