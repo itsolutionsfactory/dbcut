@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import hashlib
 import logging
 import re
 import sys
@@ -10,7 +9,7 @@ import click
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from .compat import reraise, to_unicode
+from .compat import reraise
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)
@@ -21,7 +20,6 @@ red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)
 
 
 class Context(object):
-
     def __init__(self):
         self.debug = False
         self.verbose = False
@@ -41,15 +39,17 @@ class Context(object):
             handler.setFormatter(AnsiColorFormatter())
 
         @event.listens_for(Engine, "before_cursor_execute")
-        def before_cursor_execute(conn, cursor, statement,
-                                 parameters, context, executemany):
-            conn.info.setdefault('query_start_time', []).append(time.time())
+        def before_cursor_execute(
+            conn, cursor, statement, parameters, context, executemany
+        ):
+            conn.info.setdefault("query_start_time", []).append(time.time())
             self.logger.debug("Start Query: \n%s\n" % statement)
 
         @event.listens_for(Engine, "after_cursor_execute")
-        def after_cursor_execute(conn, cursor, statement,
-                                parameters, context, executemany):
-            total = time.time() - conn.info['query_start_time'].pop(-1)
+        def after_cursor_execute(
+            conn, cursor, statement, parameters, context, executemany
+        ):
+            total = time.time() - conn.info["query_start_time"].pop(-1)
             self.logger.debug("Query Complete!")
             self.logger.debug("Total Time: %f" % total)
 
@@ -60,8 +60,8 @@ class Context(object):
         for msg in args:
             message = prefix + msg
             if self.debug:
-                message = message.replace('\r', '')
-                kwargs['nl'] = True
+                message = message.replace("\r", "")
+                kwargs["nl"] = True
             click.echo(message, **kwargs)
 
     def confirm(self, message, **kwargs):
@@ -76,8 +76,7 @@ class Context(object):
 
     def handle_error(self):
         exc_type, exc_value, tb = sys.exc_info()
-        if (isinstance(exc_value, (click.ClickException, click.Abort))
-                or self.debug):
+        if isinstance(exc_value, (click.ClickException, click.Abort)) or self.debug:
             reraise(exc_type, exc_value, tb.tb_next)
         else:
             sys.stderr.write(u"\nError: %s\n" % exc_value)
@@ -97,25 +96,27 @@ def make_pass_decorator(context_klass, ensure=True):
                 return ctx.invoke(f, obj, *args[1:], **kwargs)
             except:
                 obj.handle_error()
+
         return update_wrapper(new_func, f)
+
     return decorator
 
 
-re_color_codes = re.compile(r'\033\[(\d;)?\d+m')
+re_color_codes = re.compile(r"\033\[(\d;)?\d+m")
 
 
 class AnsiColorFormatter(logging.Formatter):
 
     LEVELS = {
-        'WARNING': red(' WARN'),
-        'INFO': blue(' INFO'),
-        'DEBUG': blue('DEBUG'),
-        'CRITICAL': magenta(' CRIT'),
-        'ERROR': red('ERROR'),
+        "WARNING": red(" WARN"),
+        "INFO": blue(" INFO"),
+        "DEBUG": blue("DEBUG"),
+        "CRITICAL": magenta(" CRIT"),
+        "ERROR": red("ERROR"),
     }
 
     def __init__(self, msgfmt=None, datefmt=None):
-        logging.Formatter.__init__(self, None, '%H:%M:%S')
+        logging.Formatter.__init__(self, None, "%H:%M:%S")
 
     def format(self, record):
         """
@@ -134,15 +135,15 @@ class AnsiColorFormatter(logging.Formatter):
         asctime = self.formatTime(record, self.datefmt)
         name = yellow(record.name)
 
-        s = '%(timestamp)s %(levelname)s %(name)s ' % {
-            'timestamp': green('%s,%03d' % (asctime, record.msecs), bold=True),
-            'levelname': self.LEVELS[record.levelname],
-            'name': name,
+        s = "%(timestamp)s %(levelname)s %(name)s " % {
+            "timestamp": green("%s,%03d" % (asctime, record.msecs), bold=True),
+            "levelname": self.LEVELS[record.levelname],
+            "name": name,
         }
 
         if "\n" in message:
-            indent_length = len(re_color_codes.sub('', s))
-            message = message.replace("\n", "\n" + ' ' * indent_length)
+            indent_length = len(re_color_codes.sub("", s))
+            message = message.replace("\n", "\n" + " " * indent_length)
 
         s += message
         return s
@@ -160,6 +161,7 @@ class CachedProperty(object):
     """A property that is only computed once per instance and then replaces
     itself with an ordinary attribute. Deleting the attribute resets the
     property."""
+
     def __init__(self, func):
         self.__name__ = func.__name__
         self.__module__ = func.__module__
@@ -189,9 +191,10 @@ def get_table_name(name):
     def _join(match):
         word = match.group()
         if len(word) > 1:
-            return ('_%s_%s' % (word[:-1], word[-1])).lower()
-        return '_' + word.lower()
-    return re.compile(r'([A-Z]+)(?=[a-z0-9])').sub(_join, name).lstrip('_')
+            return ("_%s_%s" % (word[:-1], word[-1])).lower()
+        return "_" + word.lower()
+
+    return re.compile(r"([A-Z]+)(?=[a-z0-9])").sub(_join, name).lstrip("_")
 
 
 def render_query(statement, bind=None, reindent=True):
@@ -201,9 +204,11 @@ def render_query(statement, bind=None, reindent=True):
     statement.
     """
     from sqlalchemy_utils.functions import render_statement
+
     raw_sql = render_statement(statement, bind)
     try:  # pragma: no cover
         import sqlparse
+
         return sqlparse.format(raw_sql, reindent=reindent)
     except ImportError:  # pragma: no cover
         return raw_sql
@@ -211,7 +216,7 @@ def render_query(statement, bind=None, reindent=True):
 
 def generate_valid_index_name(index, dialect):
     table_name = index.table.name
-    columns_names = '_'.join([cn.name for cn in index.columns])
+    columns_names = "_".join([cn.name for cn in index.columns])
     if index.unique:
         full_index_name = "%s_%s_unique_idx" % (table_name, columns_names)
     else:

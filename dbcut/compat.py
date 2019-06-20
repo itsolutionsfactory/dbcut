@@ -5,16 +5,16 @@ import sys
 _ver = sys.version_info
 
 #: Python 2.x?
-is_py2 = (_ver[0] == 2)
+is_py2 = _ver[0] == 2
 
 #: Python 3.x?
-is_py3 = (_ver[0] == 3)
+is_py3 = _ver[0] == 3
 
 #: Python 3.6.x
-is_py36 = (is_py3 and _ver[1] == 6)
+is_py36 = is_py3 and _ver[1] == 6
 
 #: Python 3.7.x
-is_py37 = (is_py3 and _ver[1] == 7)
+is_py37 = is_py3 and _ver[1] == 7
 
 
 if is_py3:
@@ -22,8 +22,8 @@ if is_py3:
     str = str
     bytes = bytes
     basestring = (str, bytes)
-    integer_types = (int, )
-    numeric_types = integer_types + (float, )
+    integer_types = (int,)
+    numeric_types = integer_types + (float,)
     from io import StringIO
     from queue import Empty
 
@@ -52,13 +52,14 @@ if is_py3:
     def callable(obj):
         return isinstance(obj, Callable)
 
+
 else:
     builtin_str = str
     bytes = str
     str = unicode
     basestring = basestring
     integer_types = (int, long)
-    numeric_types = integer_types + (float, )
+    numeric_types = integer_types + (float,)
 
     from itertools import izip  # noqa
 
@@ -77,7 +78,7 @@ else:
     def iteritems(d):
         return d.iteritems()
 
-    exec('def reraise(tp, value, tb=None):\n raise tp, value, tb')
+    exec("def reraise(tp, value, tb=None):\n raise tp, value, tb")
 
     def is_bytes(x):
         return isinstance(x, (buffer, bytearray))
@@ -85,7 +86,7 @@ else:
     callable = callable
 
 
-def to_unicode(obj, encoding='utf-8'):
+def to_unicode(obj, encoding="utf-8"):
     """
     Convert ``obj`` to unicode"""
     # unicode support
@@ -94,13 +95,13 @@ def to_unicode(obj, encoding='utf-8'):
 
     # bytes support
     if is_bytes(obj):
-        if hasattr(obj, 'tobytes'):
+        if hasattr(obj, "tobytes"):
             return str(obj.tobytes(), encoding)
         return str(obj, encoding)
 
     # string support
     if isinstance(obj, basestring):
-        if hasattr(obj, 'decode'):
+        if hasattr(obj, "decode"):
             return obj.decode(encoding)
         else:
             return str(obj, encoding)

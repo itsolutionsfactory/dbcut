@@ -15,11 +15,16 @@ from sqlalchemy.orm.exc import UnmappedClassError
 
 
 from .compat import reraise
-from .helpers import (cached_property, merge_dicts, get_table_name,
-                      render_query, generate_valid_index_name)
+from .helpers import (
+    cached_property,
+    merge_dicts,
+    get_table_name,
+    render_query,
+    generate_valid_index_name,
+)
 
 
-__all__ = ['Database']
+__all__ = ["Database"]
 
 
 class DoesNotExist(Exception):
@@ -28,10 +33,7 @@ class DoesNotExist(Exception):
 
 class BaseModel(object):
 
-    __default_table_args__ = {
-        'extend_existing': True,
-        'sqlite_autoincrement': True
-    }
+    __default_table_args__ = {"extend_existing": True, "sqlite_autoincrement": True}
     query = None
 
     @classmethod
@@ -49,16 +51,15 @@ class BaseModel(object):
             reraise(exc_type, exc_value, tb.tb_next)
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, inspect(self).identity)
+        return "<%s %s>" % (self.__class__.__name__, inspect(self).identity)
 
 
 class BaseQuery(Query):
-
     def render(self):
         class QueryStr(str):
             # Useful for debug
             def __repr__(self):
-                return self.replace(' \n', '\n').strip()
+                return self.replace(" \n", "\n").strip()
 
         return QueryStr(render_query(self))
 
@@ -82,17 +83,15 @@ class BaseQuery(Query):
 
 
 class SessionProperty(object):
-
     def __init__(self):
         self._sessions = {}
 
     def _create_scoped_session(self, db):
         options = db._session_options
-        options.setdefault('bind', db.engine)
+        options.setdefault("bind", db.engine)
         if db.query_class is None:
-            from .query import BaseQuery
             db.query_class = BaseQuery
-        options.setdefault('query_cls', db.query_class)
+        options.setdefault("query_cls", db.query_class)
         db.sessionmaker.configure(**options)
         scoped = scoped_session(db.sessionmaker)
         scoped.db = db
@@ -109,7 +108,6 @@ class SessionProperty(object):
 
 
 class QueryProperty(object):
-
     def __init__(self, db):
         self._db = db
 
@@ -134,11 +132,11 @@ class Database(object):
     query_collection_class = None
 
     convention = {
-        "ix": 'ix_%(column_0_label)s',
+        "ix": "ix_%(column_0_label)s",
         "uq": "uq_%(table_name)s_%(column_0_name)s",
         "ck": "ck_%(table_name)s_%(constraint_name)s",
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-        "pk": "pk_%(table_name)s"
+        "pk": "pk_%(table_name)s",
     }
 
     def __init__(self, uri=None, session_options=None):
@@ -146,14 +144,16 @@ class Database(object):
         self._reflected = False
         self.uri = uri
         self._session_options = dict(session_options or {})
-        self._session_options.setdefault('autoflush', True)
-        self._session_options.setdefault('autocommit', False)
+        self._session_options.setdefault("autoflush", True)
+        self._session_options.setdefault("autocommit", True)
         self.sessionmaker = sessionmaker(**self._session_options)
         self._engine_lock = threading.Lock()
-        self.Model = automap_base(cls=BaseModel,
-                                  name='Model',
-                                  metadata=MetaData(naming_convention=self.convention),
-                                  metaclass=_BoundDeclarativeMeta)
+        self.Model = automap_base(
+            cls=BaseModel,
+            name="Model",
+            metadata=MetaData(naming_convention=self.convention),
+            metaclass=_BoundDeclarativeMeta,
+        )
         self.Model.query = QueryProperty(self)
         self.Model._db = self
         self.models = {}
@@ -203,7 +203,7 @@ class Database(object):
             if bind is None:
                 bind = self.engine
             self.Model.prepare(bind, reflect=True)
-            if bind.dialect.name == 'mysql' and self.dialect != bind.dialect.name:
+            if bind.dialect.name == "mysql" and self.dialect != bind.dialect.name:
                 for table in self.tables.values():
                     for constraint in table.constraints:
                         if constraint.name:
@@ -267,15 +267,14 @@ class Database(object):
     def show(self):
         """ Return small database content representation."""
         for model_name in sorted(self.models.keys()):
-            data = [inspect(i).identity
-                    for i in self.models[model_name].query.all()]
+            data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
 
     def __repr__(self):
         engine = None
         if self.connector is not None:
             engine = self.engine
-        return '<%s engine=%r>' % (self.__class__.__name__, engine)
+        return "<%s engine=%r>" % (self.__class__.__name__, engine)
 
     def __fix_indexes__(self):
         for index in self.get_all_indexes():
@@ -283,7 +282,6 @@ class Database(object):
 
 
 class EngineConnector(object):
-
     def __init__(self, db):
         # TODO: parse configuration here
         self._config = {}
@@ -297,75 +295,81 @@ class EngineConnector(object):
             value = self._config.get(configkey, None)
             if value is not None:
                 options[optionkey] = value
-        _setdefault('pool_size', 'SQLALCHEMY_POOL_SIZE')
-        _setdefault('pool_timeout', 'SQLALCHEMY_POOL_TIMEOUT')
-        _setdefault('pool_recycle', 'SQLALCHEMY_POOL_RECYCLE')
-        _setdefault('max_overflow', 'SQLALCHEMY_MAX_OVERFLOW')
-        _setdefault('convert_unicode', 'SQLALCHEMY_CONVERT_UNICODE')
+
+        _setdefault("pool_size", "SQLALCHEMY_POOL_SIZE")
+        _setdefault("pool_timeout", "SQLALCHEMY_POOL_TIMEOUT")
+        _setdefault("pool_recycle", "SQLALCHEMY_POOL_RECYCLE")
+        _setdefault("max_overflow", "SQLALCHEMY_MAX_OVERFLOW")
+        _setdefault("convert_unicode", "SQLALCHEMY_CONVERT_UNICODE")
 
     def apply_driver_hacks(self, info, options):
         """This method is called before engine creation and used to inject
         driver specific hacks into the options.
         """
-        if info.drivername == 'mysql':
-            info.query.setdefault('charset', 'utf8')
-            options.setdefault('pool_size', 10)
-            options.setdefault('pool_recycle', 3600)
+        if info.drivername == "mysql":
+            info.query.setdefault("charset", "utf8")
+            options.setdefault("pool_size", 10)
+            options.setdefault("pool_recycle", 3600)
             from MySQLdb.cursors import SSCursor as MySQLdb_SSCursor
-            if MySQLdb_SSCursor is not None:
-                connect_args = options.get('connect_args', {})
-                connect_args.update({'cursorclass': MySQLdb_SSCursor})
-                options['connect_args'] = connect_args
 
-        elif info.drivername == 'sqlite':
-            no_pool = options.get('pool_size') == 0
-            memory_based = info.database in (None, '', ':memory:')
+            if MySQLdb_SSCursor is not None:
+                connect_args = options.get("connect_args", {})
+                connect_args.update({"cursorclass": MySQLdb_SSCursor})
+                options["connect_args"] = connect_args
+
+        elif info.drivername == "sqlite":
+            no_pool = options.get("pool_size") == 0
+            memory_based = info.database in (None, "", ":memory:")
             if memory_based and no_pool:
                 raise ValueError(
-                    'SQLite in-memory database with an empty queue'
-                    ' (pool_size = 0) is not possible due to data loss.'
+                    "SQLite in-memory database with an empty queue"
+                    " (pool_size = 0) is not possible due to data loss."
                 )
         return options
 
     def get_engine(self):
         with self._lock:
             uri = self._db.uri
-            echo = self._config.get('SQLALCHEMY_ECHO', False)
+            echo = self._config.get("SQLALCHEMY_ECHO", False)
             if (uri, echo) == self._connected_for:
                 return self._engine
             info = make_url(uri)
             options = {}
             self.apply_pool_defaults(options)
             self.apply_driver_hacks(info, options)
-            options['echo'] = echo
+            options["echo"] = echo
             self._engine = engine = create_engine(info, **options)
             self._connected_for = (uri, echo)
             return engine
 
-class _BoundDeclarativeMeta(DeclarativeMeta):
 
+class _BoundDeclarativeMeta(DeclarativeMeta):
     def __new__(cls, name, bases, d):
-        if '__tablename__' not in d and '__table__' not in d and '__abstract__' not in d:
-            d['__tablename__'] = get_table_name(name)
-        default_table_args = d.pop('__default_table_args__',
-                                   BaseModel.__default_table_args__)
-        table_args = d.pop('__table_args__', {})
+        if (
+            "__tablename__" not in d
+            and "__table__" not in d
+            and "__abstract__" not in d
+        ):
+            d["__tablename__"] = get_table_name(name)
+        default_table_args = d.pop(
+            "__default_table_args__", BaseModel.__default_table_args__
+        )
+        table_args = d.pop("__table_args__", {})
         if isinstance(table_args, dict):
             table_args = merge_dicts(default_table_args, table_args)
         elif isinstance(table_args, tuple):
             table_args = list(table_args)
             if isinstance(table_args[-1], dict):
-                table_args[-1] = merge_dicts(default_table_args,
-                                             table_args[-1])
+                table_args[-1] = merge_dicts(default_table_args, table_args[-1])
             else:
                 table_args.append(default_table_args)
             table_args = tuple(table_args)
-        d['__table_args__'] = table_args
+        d["__table_args__"] = table_args
         return DeclarativeMeta.__new__(cls, name, bases, d)
 
     def __init__(self, name, bases, d):
         DeclarativeMeta.__init__(self, name, bases, d)
-        if hasattr(bases[0], '_db'):
+        if hasattr(bases[0], "_db"):
             bases[0]._db.models[name] = self
             bases[0]._db.tables[self.__table__.name] = self.__table__
             self._db = bases[0]._db
