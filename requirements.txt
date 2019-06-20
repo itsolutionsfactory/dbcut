@@ -4,3 +4,4 @@ click
 mysqlclient
 psycopg2
 mlalchemy
+tabulate

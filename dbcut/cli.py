@@ -2,7 +2,9 @@
 import click
 import os
 from .helpers import Context, cached_property, make_pass_decorator
-from .operations import sync_db
+from .operations import sync_db, inspect_db
+from tabulate import tabulate
+
 from .database import Database
 from .configuration import Configuration
 
@@ -55,3 +57,21 @@ def main(ctx, **kwargs):
         default=False,
     )
     sync_db(ctx)
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument(
+    "config",
+    callback=load_configuration_file,
+    type=click.Path(writable=False, readable=True),
+    required=True,
+)
+@click.version_option()
+@click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
+@click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
+@pass_context
+def inspect(ctx, **kwargs):
+    """ Analyze all databases."""
+    ctx.update_options(**kwargs)
+    rows, headers = inspect_db(ctx)
+    click.echo(tabulate(rows, headers=headers))
