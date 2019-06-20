@@ -145,7 +145,7 @@ class Database(object):
         self.uri = uri
         self._session_options = dict(session_options or {})
         self._session_options.setdefault("autoflush", True)
-        self._session_options.setdefault("autocommit", True)
+        self._session_options.setdefault("autocommit", False)
         self.sessionmaker = sessionmaker(**self._session_options)
         self._engine_lock = threading.Lock()
         self.Model = automap_base(
