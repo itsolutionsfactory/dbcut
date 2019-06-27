@@ -52,6 +52,8 @@ class BaseQuery(Query):
         except ImportError:  # pragma: no cover
             return raw_sql
 
+        return self.QueryStr(raw_sql)
+
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
