@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 import re
 import sys
 import time
@@ -205,3 +206,12 @@ def generate_valid_index_name(index, dialect):
     else:
         full_index_name = "%s_%s_idx" % (table_name, columns_names)
     return full_index_name
+
+
+def create_directory(dir_path, exist_ok=True):
+    absolute_dir_path = os.path.realpath(
+        os.path.join(os.getcwd(), os.path.expanduser(dir_path))
+    )
+    os.makedirs(absolute_dir_path, exist_ok=exist_ok)
+    return absolute_dir_path
+
