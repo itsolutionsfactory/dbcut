@@ -82,28 +82,46 @@ class BaseQuery(Query):
         return rv
 
 
+class BaseSession(Session):
+    def __init__(self, db, **options):
+        self.db = db
+        bind = options.pop("bind", None) or db.engine
+        query_cls = options.pop("query_cls", None) or db.query_class
+        session_options = merge_dicts(
+            dict(autocommit=True, autoflush=True), db._session_options
+        )
+
+        Session.__init__(self, bind=bind, query_cls=query_cls, **session_options)
+
+
 class SessionProperty(object):
-    def __init__(self):
-        self._sessions = {}
+
+    _scoped_sessions = {}
+
+    def __init__(self, db=None):
+        self.db = db
+
+    def _create_session_sessionmaker(self, db, options):
+        return sessionmaker(class_=BaseSession, db=db, **options)
 
     def _create_scoped_session(self, db):
         options = db._session_options
-        options.setdefault("bind", db.engine)
-        if db.query_class is None:
-            db.query_class = BaseQuery
-        options.setdefault("query_cls", db.query_class)
-        db.sessionmaker.configure(**options)
-        scoped = scoped_session(db.sessionmaker)
-        scoped.db = db
-        return scoped
+        session_factory = self._create_session_sessionmaker(db, options)
+        return scoped_session(session_factory)
 
-    def __get__(self, obj, type):
+    def __get__(self, obj, type_):
+        if self.db is not None:
+            obj = self.db
         if obj is not None:
-            if obj not in self._sessions:
-                self._sessions[obj] = self._create_scoped_session(obj)
+
+            if obj not in self._scoped_sessions:
+                self._scoped_sessions[obj] = self._create_scoped_session(obj)
+
+            session = self._scoped_sessions[obj]()
             if not obj._reflected:
-                obj.reflect(bind=self._sessions[obj]().bind)
-            return self._sessions[obj]
+                obj.reflect(bind=session.bind)
+
+            return session
         return self
 
 
@@ -127,9 +145,9 @@ class Database(object):
     """
 
     session = SessionProperty()
+    session_class = None
     Model = None
-    query_class = None
-    query_collection_class = None
+    query_class = BaseQuery
 
     convention = {
         "ix": "ix_%(column_0_label)s",
@@ -146,7 +164,6 @@ class Database(object):
         self._session_options = dict(session_options or {})
         self._session_options.setdefault("autoflush", True)
         self._session_options.setdefault("autocommit", False)
-        self.sessionmaker = sessionmaker(**self._session_options)
         self._engine_lock = threading.Lock()
         self.Model = automap_base(
             cls=BaseModel,
