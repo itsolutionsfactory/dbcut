@@ -45,6 +45,13 @@ def load_configuration_file(ctx, param, value):
 @click.version_option()
 @click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
 @click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
+@click.option(
+    "-y",
+    "--force-yes",
+    is_flag=True,
+    default=False,
+    help="Never prompts for user intervention",
+)
 @pass_context
 def main(ctx, **kwargs):
     """Extract a lightweight subset of your production DB for development and testing purpose."""
