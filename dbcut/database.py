@@ -401,27 +401,12 @@ class EngineConnector(object):
 
 class _BoundDeclarativeMeta(DeclarativeMeta):
     def __new__(cls, name, bases, d):
-        if (
-            "__tablename__" not in d
-            and "__table__" not in d
-            and "__abstract__" not in d
-        ):
-            d["__tablename__"] = get_table_name(name)
-        default_table_args = d.pop(
-            "__default_table_args__", BaseModel.__default_table_args__
-        )
-        table_args = d.pop("__table_args__", {})
-        if isinstance(table_args, dict):
-            table_args = merge_dicts(default_table_args, table_args)
-        elif isinstance(table_args, tuple):
-            table_args = list(table_args)
-            if isinstance(table_args[-1], dict):
-                table_args[-1] = merge_dicts(default_table_args, table_args[-1])
-            else:
-                table_args.append(default_table_args)
-            table_args = tuple(table_args)
-        d["__table_args__"] = table_args
-        return DeclarativeMeta.__new__(cls, name, bases, d)
+        from .models import _add_new_class
+
+        d["__module__"] = ".".join(__name__.split(".")[:-1] + ["models"])
+        class_ = DeclarativeMeta.__new__(cls, name, bases, d)
+        _add_new_class(class_)
+        return class_
 
     def __init__(self, name, bases, d):
         DeclarativeMeta.__init__(self, name, bases, d)
