@@ -23,6 +23,9 @@ from .helpers import (
     generate_valid_index_name,
 )
 
+from .compat import reraise, str, to_unicode
+from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
+                      to_json)
 
 __all__ = ["Database"]
 
@@ -54,6 +57,37 @@ class BaseQuery(Query):
 
         return self.QueryStr(raw_sql)
 
+    @property
+    def cache_key(self):
+        sha1_hash = hashlib.sha1(self.render().encode("utf-8")).hexdigest()
+        return "%s-%s" % (self.model_class.__name__, sha1_hash)
+
+    @property
+    def cache_file(self):
+        return "%s.json" % os.path.join(self.session.db.cache_dir, self.cache_key)
+
+    @property
+    def is_cached(self):
+        return os.path.isfile(self.cache_file)
+
+    @property
+    def model_class(self):
+        return self.session.db.models[self._bind_mapper().class_.__name__]
+
+    @property
+    def marshmallow_schema(self):
+        return self.model_class.__marshmallow__()
+    def save_to_cache(self):
+        dict_dump = self.marshmallow_schema.dump(self, many=True).data
+        with open(self.cache_file, "w", "utf-8") as fd:
+            fd.write(to_json(dict_dump))
+
+    def load_from_cache(self, session=None, transient=False):
+        session = session or self.session
+        with open(self.cache_file, "r", "utf-8") as fd:
+            return self.marshmallow_schema.loads(
+                fd.read(), many=True, session=session
+            ).data
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
@@ -178,16 +212,15 @@ class Database(object):
         self._session_options.setdefault("autoflush", True)
         self._session_options.setdefault("autocommit", False)
         self._engine_lock = threading.Lock()
+        self.models = {}
+        self.tables = {}
         self.Model = automap_base(
             cls=BaseModel,
             name="Model",
             metadata=MetaData(naming_convention=self.convention),
             metaclass=_BoundDeclarativeMeta,
         )
-        self.Model.query = QueryProperty(self)
         self.Model._db = self
-        self.models = {}
-        self.tables = {}
 
     @property
     def engine(self):
