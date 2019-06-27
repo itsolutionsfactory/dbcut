@@ -57,6 +57,7 @@ def parse_queries(ctx):
     session = ctx.src_db.session
     models = ctx.src_db.models
     for dict_query in ctx.config["queries"]:
+        dict_query.setdefault("limit", 100)
         query = (
             parse_query(dict_query)
             .to_sqlalchemy(session, models)
