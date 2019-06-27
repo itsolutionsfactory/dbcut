@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import gzip
 import hashlib
 import os
 import sys
 import threading
 
-from sqlalchemy import MetaData, create_engine, inspect
+from io import open
+from marshmallow_sqlalchemy import ModelSchema
+from sqlalchemy import MetaData, create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import (Query, Session, class_mapper, scoped_session,
-                            sessionmaker)
+from sqlalchemy.orm import (Query, Session, class_mapper, mapper,
+                            scoped_session, sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
-from sqlalchemy.orm.util import CascadeOptions
 from sqlalchemy.schema import conv
 
 from .compat import reraise, str, to_unicode
 from .configuration import DEFAULT_CONFIG
-from .helpers import cached_property, generate_valid_index_name, merge_dicts
+from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
+                      to_json)
 
 __all__ = ["Database"]
 
@@ -69,20 +69,20 @@ class BaseQuery(Query):
     def model_class(self):
         return self.session.db.models[self._bind_mapper().class_.__name__]
 
+    @property
+    def marshmallow_schema(self):
+        return self.model_class.__marshmallow__()
+
     def save_to_cache(self):
-        content = sa_serializer.dumps(list(self))
-        with gzip.open(self.cache_file, "wb") as fd:
-            fd.write(content)
+        dict_dump = self.marshmallow_schema.dump(self, many=True).data
+        with open(self.cache_file, "w", encoding="utf-8") as fd:
+            jsontext = to_json(dict_dump)
+            fd.write(jsontext)
 
-    def load_from_cache(self, metadata=None, session=None):
+    def load_from_cache(self, session=None, transient=False):
         session = session or self.session
-        metadata = metadata or session.db.metadata
-        with gzip.open(self.cache_file, "rb") as fd:
-            return sa_serializer.loads(fd.read(), metadata, session)
-
-    def get_objects(self, metadata=None, session=None):
-        for item in self:
-            yield self.model_class.new_from_dict(item.to_dict())
+        with open(self.cache_file, "r", encoding="utf-8") as fd:
+            return self.marshmallow_schema.loads(fd.read(), many=True).data
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
@@ -268,9 +268,9 @@ class Database(object):
                 reflect=True,
                 name_for_collection_relationship=self._name_collection_relationship,
             )
-            for model in self.models.values():
-                for relationship in model.__mapper__.relationships:
-                    relationship.cascade = CascadeOptions("all")
+            # for model in self.models.values():
+            #     for relationship in model.__mapper__.relationships:
+            #         relationship.cascade = CascadeOptions("all")
 
             for table in self.tables.values():
                 for constraint in table.constraints:
@@ -352,6 +352,21 @@ class Database(object):
 
     def _name_collection_relationship(self, base, local_cls, referred_cls, constraint):
         return referred_cls.__name__.lower() + "_collection"
+
+    def _configure_serialization(self):
+
+        for class_ in self.models.values():
+
+            class Meta(object):
+                model = class_
+                transient = True
+                # sqla_session = SessionProperty(self)
+
+            schema_class_name = "%s_marshmallow_schema" % class_.__name__
+
+            schema_class = type(schema_class_name, (ModelSchema,), {"Meta": Meta})
+
+            setattr(class_, "__marshmallow__", schema_class)
 
 
 class EngineConnector(object):
