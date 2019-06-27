@@ -1,31 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import hashlib
+import os
 import sys
 import threading
 
-from sqlalchemy import create_engine, inspect, MetaData
+from sqlalchemy import MetaData, create_engine, inspect
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.schema import conv
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Query
-from sqlalchemy.orm import sessionmaker, class_mapper, scoped_session
+from sqlalchemy.orm import (Query, Session, class_mapper, scoped_session,
+                            sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
-
-
-from .compat import reraise
-from .helpers import (
-    cached_property,
-    merge_dicts,
-    get_table_name,
-    render_query,
-    generate_valid_index_name,
-)
+from sqlalchemy.schema import conv
 
 from .compat import reraise, str, to_unicode
-from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
-                      to_json)
+from .configuration import DEFAULT_CONFIG
+from .helpers import cached_property, generate_valid_index_name, merge_dicts
 
 __all__ = ["Database"]
 
@@ -73,21 +65,6 @@ class BaseQuery(Query):
     @property
     def model_class(self):
         return self.session.db.models[self._bind_mapper().class_.__name__]
-
-    @property
-    def marshmallow_schema(self):
-        return self.model_class.__marshmallow__()
-    def save_to_cache(self):
-        dict_dump = self.marshmallow_schema.dump(self, many=True).data
-        with open(self.cache_file, "w", "utf-8") as fd:
-            fd.write(to_json(dict_dump))
-
-    def load_from_cache(self, session=None, transient=False):
-        session = session or self.session
-        with open(self.cache_file, "r", "utf-8") as fd:
-            return self.marshmallow_schema.loads(
-                fd.read(), many=True, session=session
-            ).data
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
@@ -221,6 +198,8 @@ class Database(object):
             metaclass=_BoundDeclarativeMeta,
         )
         self.Model._db = self
+        self.Model._query = QueryProperty(self)
+        self.Model._session = SessionProperty(self)
 
     @property
     def engine(self):
