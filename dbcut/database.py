@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import gzip
 import hashlib
 import os
 import sys
@@ -8,6 +9,7 @@ import threading
 
 from sqlalchemy import MetaData, create_engine, inspect
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import (Query, Session, class_mapper, scoped_session,
@@ -65,6 +67,17 @@ class BaseQuery(Query):
     @property
     def model_class(self):
         return self.session.db.models[self._bind_mapper().class_.__name__]
+
+    def save_to_cache(self):
+        content = sa_serializer.dumps(list(self))
+        with gzip.open(self.cache_file, "wb") as fd:
+            fd.write(content)
+
+    def load_from_cache(self, metadata=None, session=None):
+        session = session or self.session
+        metadata = metadata or session.db.metadata
+        with gzip.open(self.cache_file, "rb") as fd:
+            return sa_serializer.loads(fd.read(), metadata, session)
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
