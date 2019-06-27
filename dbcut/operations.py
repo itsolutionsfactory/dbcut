@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import warnings
 
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func, MetaData, Table
-from sqlalchemy.sql.expression import select
+from mlalchemy import parse_query
+from sqlalchemy import MetaData, Table, create_engine, func
 from sqlalchemy.engine.reflection import Inspector
-
+from sqlalchemy.orm import joinedload
+from sqlalchemy.sql.expression import select
 
 from .compat import to_unicode
 from .helpers import green
@@ -53,6 +51,23 @@ def count_all(engine):
         yield table.name, raw_conn.execute(count_query).scalar()
 
 
+def parse_queries(ctx):
+    # try a simple YAML-based query first
+    queries = []
+    session = ctx.src_db.session
+    models = ctx.src_db.models
+    for dict_query in ctx.config["queries"]:
+        query = (
+            parse_query(dict_query)
+            .to_sqlalchemy(session, models)
+            .distinct()
+            .options(joinedload("*"))
+        )
+        queries.append(query)
+    return queries
+
+
+def sync_schema(ctx):
     from_engine = create_engine(ctx.src_db.engine.url)
     to_engine = create_engine(ctx.dest_db.engine.url)
 
@@ -62,6 +77,26 @@ def count_all(engine):
     ctx.dest_db.reflect(bind=from_engine)
     ctx.dest_db.drop_all(bind=to_engine, checkfirst=True)
     ctx.dest_db.create_all(bind=to_engine, checkfirst=True)
+
+
+def sync_data(ctx):
+    queries = parse_queries(ctx)
+    dest_session = ctx.dest_db.session
+    dest_session.execute("SET FOREIGN_KEY_CHECKS = 0;")
+    for query in queries:
+        if not query.is_cached:
+            query.save_to_cache()
+        items = query.load_from_cache(dest_session)
+        if items:
+            for item in items:
+                dest_session.merge(item)
+                dest_session.flush()
+            dest_session.commit()
+
+
+def sync_db(ctx):
+    sync_schema(ctx)
+    sync_data(ctx)
 
 
 def inspect_db(ctx):
