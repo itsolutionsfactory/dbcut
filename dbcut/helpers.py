@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import datetime
+import decimal
+import json
 import logging
 import os
 import re
@@ -10,7 +13,7 @@ import click
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from .compat import reraise
+from .compat import reraise, to_unicode
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)
@@ -215,3 +218,31 @@ def create_directory(dir_path, exist_ok=True):
     os.makedirs(absolute_dir_path, exist_ok=exist_ok)
     return absolute_dir_path
 
+
+class JSONEncoder(json.JSONEncoder):
+    """JSON Encoder class that handles conversion for a number of types not
+    supported by the default json library, especially the sqlalchemy objects.
+
+    :returns: object that can be converted to json
+    """
+
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
+            return obj.isoformat()
+        elif isinstance(obj, (decimal.Decimal)):
+            return to_unicode(obj)
+        elif hasattr(obj, "asdict") and callable(getattr(obj, "asdict")):
+            return obj.asdict()
+        elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+            return obj.to_dict()
+        else:
+            return json.JSONEncoder.default(self, obj)
+
+
+def to_json(obj, **kwargs):
+    """Dumps object to json string. """
+    kwargs.setdefault("ensure_ascii", False)
+    kwargs.setdefault("cls", JSONEncoder)
+    kwargs.setdefault("indent", 4)
+    kwargs.setdefault("separators", (",", ": "))
+    return json.dumps(obj, **kwargs)
