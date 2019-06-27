@@ -141,14 +141,13 @@ class BaseModel(object):
 
 class QueryProperty(object):
     def __init__(self, db):
-        self._db = db
+        self.db = db
 
     def __get__(self, obj, type):
-        session = self._db.session()
         try:
             mapper = class_mapper(type)
             if mapper:
-                return self._db.query_class(mapper, session=session)
+                return self.db.query_class(mapper, session=self._db.session)
         except UnmappedClassError:
             return self
 
