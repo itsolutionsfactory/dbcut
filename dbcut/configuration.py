@@ -1,29 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import sys
+
+import logging
+import os
 import pprint
-from io import open
+import sys
 
 import yaml
-import logging
+from io import open
 
 from .compat import reraise
-
+from .helpers import create_directory
 
 logger = logging.getLogger(__name__)
 
 
-class Configuration(dict):
-    DEFAULT_CONFIG = {
-        "convert_unicode": True,
-        "sql_echo": False,
-        "log_level": 3,
-        "log_file": ":stderr:",
-        "log_format": "[%(levelname)8s] [%(asctime)s] [%(name)s]: %(message)s",
-    }
+DEFAULT_CONFIG = {
+    "queries": [],
+    "convert_unicode": True,
+    "echo": False,
+    "cache": os.path.expanduser("~/.cache/dbcut"),
+    "log_level": 3,
+    "log_file": ":stderr:",
+    "log_format": "[%(levelname)8s] [%(asctime)s] [%(name)s]: %(message)s",
+}
 
+
+class Configuration(dict):
     def __init__(self, filename, defaults=None):
-        defaults = dict(self.DEFAULT_CONFIG)
+        defaults = dict(DEFAULT_CONFIG)
         defaults.update(defaults or {})
         dict.__init__(self, defaults)
         self.load_file(filename)
@@ -48,6 +53,7 @@ class Configuration(dict):
             else:
                 exc_type, exc_value, tb = sys.exc_info()
                 reraise(exc_type, exc_value, tb.tb_next)
+        self["cache"] = create_directory(self["cache"])
 
         return True
 
