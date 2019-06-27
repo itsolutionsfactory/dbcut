@@ -197,23 +197,6 @@ def get_table_name(name):
     return re.compile(r"([A-Z]+)(?=[a-z0-9])").sub(_join, name).lstrip("_")
 
 
-def render_query(statement, bind=None, reindent=True):
-    """Generate an SQL expression string with bound parameters rendered inline
-    for the given SQLAlchemy statement.
-    The function can also receive a `sqlalchemy.orm.Query` object instead of
-    statement.
-    """
-    from sqlalchemy_utils.functions import render_statement
-
-    raw_sql = render_statement(statement, bind)
-    try:  # pragma: no cover
-        import sqlparse
-
-        return sqlparse.format(raw_sql, reindent=reindent)
-    except ImportError:  # pragma: no cover
-        return raw_sql
-
-
 def generate_valid_index_name(index, dialect):
     table_name = index.table.name
     columns_names = "_".join([cn.name for cn in index.columns])

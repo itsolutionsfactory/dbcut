@@ -31,37 +31,27 @@ class DoesNotExist(Exception):
     pass
 
 
-class BaseModel(object):
-
-    __default_table_args__ = {"extend_existing": True, "sqlite_autoincrement": True}
-    query = None
-
-    @classmethod
-    def create(cls, **kwargs):
-        record = cls()
-        for key, value in kwargs.items():
-            setattr(record, key, value)
-        try:
-            cls._db.session.add(record)
-            cls._db.session.commit()
-            return record
-        except:
-            exc_type, exc_value, tb = sys.exc_info()
-            cls._db.session.rollback()
-            reraise(exc_type, exc_value, tb.tb_next)
-
-    def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, inspect(self).identity)
-
-
 class BaseQuery(Query):
-    def render(self):
-        class QueryStr(str):
-            # Useful for debug
-            def __repr__(self):
-                return self.replace(" \n", "\n").strip()
+    class QueryStr(str):
+        # Useful for debug
+        def __repr__(self):
+            return self.replace(" \n", "\n").strip()
 
-        return QueryStr(render_query(self))
+    def render(self, reindent=True):
+        """Generate an SQL expression string with bound parameters rendered inline
+        for the given SQLAlchemy query.
+        """
+
+        statement = self.with_labels().statement
+        raw_sql = to_unicode(statement.compile(compile_kwargs={"literal_binds": True}))
+
+        try:  # pragma: no cover
+            import sqlparse
+
+            raw_sql = sqlparse.format(raw_sql, reindent=reindent)
+        except ImportError:  # pragma: no cover
+            return raw_sql
+
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
@@ -123,6 +113,28 @@ class SessionProperty(object):
 
             return session
         return self
+
+
+class BaseModel(object):
+
+    __table_args__ = {"extend_existing": True, "sqlite_autoincrement": True}
+
+    @classmethod
+    def create(cls, **kwargs):
+        record = cls()
+        for key, value in kwargs.items():
+            setattr(record, key, value)
+        try:
+            cls._db.session.add(record)
+            cls._db.session.commit()
+            return record
+        except:
+            exc_type, exc_value, tb = sys.exc_info()
+            cls._db.session.rollback()
+            reraise(exc_type, exc_value, tb.tb_next)
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, inspect(self).identity)
 
 
 class QueryProperty(object):
