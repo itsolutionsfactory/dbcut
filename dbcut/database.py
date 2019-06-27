@@ -181,9 +181,10 @@ class Database(object):
         "pk": "pk_%(table_name)s",
     }
 
-    def __init__(self, uri=None, session_options=None):
+    def __init__(self, uri=None, cache_dir=None, session_options=None):
         self.connector = None
         self._reflected = False
+        self.cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
         self.uri = uri
         self._session_options = dict(session_options or {})
         self._session_options.setdefault("autoflush", True)
