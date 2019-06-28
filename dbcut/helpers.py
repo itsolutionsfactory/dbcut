@@ -17,12 +17,12 @@ from sqlalchemy.orm import Query
 
 from .compat import reraise, to_unicode
 
-magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)
-yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)
-green = lambda x, **kwargs: click.style("%s" % x, fg="green", **kwargs)
-cyan = lambda x, **kwargs: click.style("%s" % x, fg="cyan", **kwargs)
-blue = lambda x, **kwargs: click.style("%s" % x, fg="blue", **kwargs)
-red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)
+magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)  # noqa
+yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)  # noqa
+green = lambda x, **kwargs: click.style("%s" % x, fg="green", **kwargs)  # noqa
+cyan = lambda x, **kwargs: click.style("%s" % x, fg="cyan", **kwargs)  # noqa
+blue = lambda x, **kwargs: click.style("%s" % x, fg="blue", **kwargs)  # noqa
+red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)  # noqa
 
 
 class Context(object):
