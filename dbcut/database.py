@@ -16,6 +16,7 @@ from sqlalchemy.orm import (Query, Session, class_mapper, scoped_session,
                             sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.schema import conv
+from sqlathanor.declarative import BaseModel as SQLAthanorBaseModel
 
 from .compat import reraise, str, to_unicode
 from .configuration import DEFAULT_CONFIG
@@ -141,7 +142,7 @@ class SessionProperty(object):
         return self
 
 
-class BaseModel(object):
+class BaseModel(SQLAthanorBaseModel):
 
     __table_args__ = {"extend_existing": True, "sqlite_autoincrement": True}
 
