@@ -47,7 +47,7 @@ class Context(object):
             conn, cursor, statement, parameters, context, executemany
         ):
             conn.info.setdefault("query_start_time", []).append(time.time())
-            self.logger.debug("Start Query: \n%s\n" % statement)
+            self.logger.debug("Start Query on %s: \n%s\n" % (conn.engine, statement))
 
         @event.listens_for(Engine, "after_cursor_execute")
         def after_cursor_execute(
