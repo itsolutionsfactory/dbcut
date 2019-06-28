@@ -3,24 +3,27 @@ from __future__ import absolute_import
 
 import gzip
 import hashlib
+import json
 import os
 import sys
 import threading
 
-from sqlalchemy import MetaData, create_engine, inspect
+from sqlalchemy import MetaData, create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import (Query, Session, class_mapper, scoped_session,
-                            sessionmaker)
+from sqlalchemy.orm import (Query, Session, class_mapper, mapper,
+                            scoped_session, sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
+from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.schema import conv
 from sqlathanor.declarative import BaseModel as SQLAthanorBaseModel
 
 from .compat import reraise, str, to_unicode
 from .configuration import DEFAULT_CONFIG
-from .helpers import cached_property, generate_valid_index_name, merge_dicts
+from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
+                      to_json)
 
 __all__ = ["Database"]
 
@@ -69,16 +72,36 @@ class BaseQuery(Query):
     def model_class(self):
         return self.session.db.models[self._bind_mapper().class_.__name__]
 
-    def save_to_cache(self):
+    def save_to_cache_(self):
         content = sa_serializer.dumps(list(self))
         with gzip.open(self.cache_file, "wb") as fd:
             fd.write(content)
 
+    def save_to_cache(self):
+        # content = sa_serializer.dumps(list(self))
+        # import yaml
+
+        with open(self.cache_file, "wb") as fd:
+            # fd.write(to_json(self).encode("utf-8"))
+            # __import__("pdb").set_trace()
+            fd.write(to_json(self).encode("utf-8"))
+
     def load_from_cache(self, metadata=None, session=None):
         session = session or self.session
         metadata = metadata or session.db.metadata
-        with gzip.open(self.cache_file, "rb") as fd:
-            return sa_serializer.loads(fd.read(), metadata, session)
+        list_dict = []
+        with open(self.cache_file, "rb") as fd:
+            list_dict = json.loads(fd.read())
+        for input_data in list_dict:
+            try:
+                input_data_copy = input_data.copy()
+                item = self.model_class.new_from_dict(
+                    input_data_copy, error_on_extra_keys=True, drop_extra_keys=False
+                )
+                return [item]
+            except Exception:
+                pass
+        return []
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
@@ -215,6 +238,7 @@ class Database(object):
         self.Model._db = self
         self.Model._query = QueryProperty(self)
         self.Model._session = SessionProperty(self)
+        event.listen(mapper, "after_configured", self._configure_serialization)
 
     @property
     def engine(self):
@@ -259,7 +283,11 @@ class Database(object):
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            self.Model.prepare(bind, reflect=True)
+            self.Model.prepare(
+                bind,
+                reflect=True,
+                name_for_collection_relationship=self._name_collection_relationship,
+            )
             if bind.dialect.name == "mysql" and self.dialect != bind.dialect.name:
                 for table in self.tables.values():
                     for constraint in table.constraints:
@@ -336,6 +364,30 @@ class Database(object):
     def __fix_indexes__(self):
         for index in self.get_all_indexes():
             index.name = conv(generate_valid_index_name(index, self.engine.dialect))
+
+    def _name_collection_relationship(self, base, local_cls, referred_cls, constraint):
+        return referred_cls.__name__.lower() + "_collection"
+
+    def _configure_serialization(self):
+        for class_ in self.models.values():
+            setattr(class_, "__serialization__", [])
+            keynames = set(
+                class_.__mapper__.column_attrs.keys()
+                + class_.__mapper__.relationships.keys()
+            )
+            for keyname in keynames:
+                support_serialization = True
+                if keyname.endswith("_collection"):
+                    # exclude serialization
+                    support_serialization = False
+
+                class_.set_attribute_serialization_config(
+                    keyname,
+                    supports_csv=support_serialization,
+                    supports_json=support_serialization,
+                    supports_yaml=support_serialization,
+                    supports_dict=support_serialization,
+                )
 
 
 class EngineConnector(object):

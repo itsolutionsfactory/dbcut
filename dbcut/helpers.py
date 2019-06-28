@@ -7,11 +7,13 @@ import os
 import re
 import sys
 import time
+import uuid
 from functools import update_wrapper
 
 import click
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Query
 
 from .compat import reraise, to_unicode
 
@@ -227,16 +229,33 @@ class JSONEncoder(json.JSONEncoder):
     """
 
     def default(self, obj):
-        if isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
-            return obj.isoformat()
+        if isinstance(obj, datetime.datetime):
+            representation = obj.isoformat()
+            if representation.endswith("+00:00"):
+                representation = representation[:-6] + "Z"
+            return to_unicode(representation)
+        if isinstance(obj, (datetime.date, datetime.time)):
+            return to_unicode(obj.isoformat())
         elif isinstance(obj, (decimal.Decimal)):
+            return float(obj)
+        elif isinstance(obj, uuid.UUID):
             return to_unicode(obj)
-        elif hasattr(obj, "asdict") and callable(getattr(obj, "asdict")):
-            return obj.asdict()
-        elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
-            return obj.to_dict()
-        else:
-            return json.JSONEncoder.default(self, obj)
+        elif isinstance(obj, Query):
+            return list(obj)
+        elif isinstance(obj, bytes):
+            return obj.decode()
+        elif hasattr(obj, "tolist"):
+            return obj.tolist()
+        elif hasattr(obj, "to_dict"):
+            return obj.to_dict(max_nesting=50)
+        elif hasattr(obj, "__getitem__"):
+            try:
+                return dict(obj)
+            except Exception:
+                pass
+        elif hasattr(obj, "__iter__"):
+            return list(item for item in obj)
+        return super(JSONEncoder, self).default(obj)
 
 
 def to_json(obj, **kwargs):
