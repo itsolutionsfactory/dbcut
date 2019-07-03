@@ -93,15 +93,15 @@ class BaseQuery(Query):
         with open(self.cache_file, "rb") as fd:
             list_dict = json.loads(fd.read())
         for input_data in list_dict:
-            try:
-                input_data_copy = input_data.copy()
-                item = self.model_class.new_from_dict(
-                    input_data_copy, error_on_extra_keys=True, drop_extra_keys=False
-                )
-                return [item]
-            except Exception:
-                pass
-        return []
+            input_data_copy = input_data.copy()
+            item = self.model_class.new_from_dict(
+                input_data_copy, error_on_extra_keys=True, drop_extra_keys=False
+            )
+            yield item
+
+    def get_objects(self, metadata=None, session=None):
+        for item in self:
+            yield self.model_class.new_from_dict(item.to_dict())
 
     def get_or_error(self, uid):
         """Like :meth:`get` but raises an error if not found instead of
