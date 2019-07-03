@@ -2,9 +2,11 @@
 import warnings
 
 from mlalchemy import parse_query
-from sqlalchemy import MetaData, Table, create_engine, func
+from sqlalchemy import MetaData, Table, create_engine, event, func
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import Insert
 from sqlalchemy.sql.expression import select
 
 from .compat import to_unicode
@@ -17,6 +19,16 @@ try:
     warnings.filterwarnings("ignore", category=pymysql.Warning)
 except ImportError:
     pass
+
+
+@event.listens_for(Engine, "before_execute", retval=True)
+def ignore_duplicate_insert(conn, element, multiparams, params):
+    if isinstance(element, Insert):
+        if conn.engine.dialect.name == "mysql":
+            element = element.prefix_with("IGNORE")
+        elif conn.engine.dialect.name == "sqlite":
+            element = element.prefix_with("OR IGNORE")
+    return element, multiparams, params
 
 
 def database_exists(*args, **kwargs):
