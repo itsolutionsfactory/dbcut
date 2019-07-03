@@ -16,7 +16,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import (Query, Session, class_mapper, mapper,
                             scoped_session, sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
-from sqlalchemy.orm.state import InstanceState
+from sqlalchemy.orm.util import CascadeOptions
 from sqlalchemy.schema import conv
 from sqlathanor.declarative import BaseModel as SQLAthanorBaseModel
 
@@ -288,11 +288,16 @@ class Database(object):
                 reflect=True,
                 name_for_collection_relationship=self._name_collection_relationship,
             )
+            for model in self.models.values():
+                for relationship in model.__mapper__.relationships:
+                    relationship.cascade = CascadeOptions("all")
+
+            for table in self.tables.values():
+                for constraint in table.constraints:
+                    if constraint.name:
+                        constraint.name = conv(constraint.name)
+
             if bind.dialect.name == "mysql" and self.dialect != bind.dialect.name:
-                for table in self.tables.values():
-                    for constraint in table.constraints:
-                        if constraint.name:
-                            constraint.name = conv(constraint.name)
                 self.__fix_indexes__()
             self._reflected = True
 
