@@ -108,6 +108,7 @@ def sync_data(ctx):
     for query in queries:
         src_query = query.with_session(src_session)
         query.with_session(dest_session).merge_result(src_query)
+        dest_session.commit()
 
 
 def sync_db(ctx):
