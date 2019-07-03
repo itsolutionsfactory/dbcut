@@ -224,7 +224,7 @@ class Database(object):
         self.cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
         self.uri = uri
         self._session_options = dict(session_options or {})
-        self._session_options.setdefault("autoflush", True)
+        self._session_options.setdefault("autoflush", False)
         self._session_options.setdefault("autocommit", False)
         self._engine_lock = threading.Lock()
         self.models = {}
