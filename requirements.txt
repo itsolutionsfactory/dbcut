@@ -6,4 +6,3 @@ psycopg2
 mlalchemy
 tabulate
 sqlparse
-sqlathanor
