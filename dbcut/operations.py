@@ -10,6 +10,14 @@ from sqlalchemy.sql.expression import select
 from .compat import to_unicode
 from .helpers import green
 
+# Disable pymysql warning
+try:
+    import pymysql
+
+    warnings.filterwarnings("ignore", category=pymysql.Warning)
+except ImportError:
+    pass
+
 
 def database_exists(*args, **kwargs):
     with warnings.catch_warnings():
