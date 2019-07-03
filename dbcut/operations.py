@@ -83,16 +83,11 @@ def sync_schema(ctx):
 def sync_data(ctx):
     queries = parse_queries(ctx)
     dest_session = ctx.dest_db.session
+    src_session = ctx.src_db.session
     dest_session.execute("SET FOREIGN_KEY_CHECKS = 0;")
     for query in queries:
-        if not query.is_cached:
-            query.save_to_cache()
-        items = query.load_from_cache(dest_session)
-        if items:
-            for item in items:
-                dest_session.merge(item)
-                dest_session.flush()
-            dest_session.commit()
+        src_query = query.with_session(src_session)
+        query.with_session(dest_session).merge_result(src_query)
 
 
 def sync_db(ctx):
