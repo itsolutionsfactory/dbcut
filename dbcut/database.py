@@ -6,6 +6,7 @@ import os
 import sys
 import threading
 
+from easy_profile import SessionProfiler, StreamReporter
 from io import open
 from marshmallow_sqlalchemy import ModelSchema
 from sqlalchemy import MetaData, create_engine, event, inspect
@@ -219,6 +220,17 @@ class Database(object):
         self.Model._db = self
         self.Model._query = QueryProperty(self)
         self.Model._session = SessionProperty(self)
+        self.profiler = SessionProfiler(engine=self.engine)
+        event.listen(mapper, "after_configured", self._configure_serialization)
+
+    def start_profiler(self):
+        self.profiler.begin()
+
+    def stop_profiler(self):
+        self.profiler.commit()
+
+    def profiler_stats(self):
+        StreamReporter().report(self.engine, self.profiler.stats)
 
     @property
     def engine(self):
