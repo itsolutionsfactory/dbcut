@@ -140,11 +140,11 @@ class SessionProperty(object):
             if obj not in self._scoped_sessions:
                 self._scoped_sessions[obj] = self._create_scoped_session(obj)
 
-            session = self._scoped_sessions[obj]()
+            scoped_session = self._scoped_sessions[obj]
             if not obj._reflected:
-                obj.reflect(bind=session.bind)
+                obj.reflect(bind=scoped_session.bind)
 
-            return session
+            return scoped_session
         return self
 
 
