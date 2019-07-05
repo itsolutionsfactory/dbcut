@@ -69,7 +69,7 @@ class BaseQuery(Query):
 
     @property
     def model_class(self):
-        return self._mapper_zero().class_
+        return self.session.db.models[self._bind_mapper().class_.__name__]
 
     @property
     def marshmallow_schema(self):
