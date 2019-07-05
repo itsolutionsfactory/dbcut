@@ -77,7 +77,7 @@ def parse_queries(ctx):
     session = ctx.src_db.session
     models = ctx.src_db.models
     for dict_query in ctx.config["queries"]:
-        dict_query.setdefault("limit", 100)
+        # dict_query.setdefault("limit", 100)
         query = (
             parse_query(dict_query)
             .to_sqlalchemy(session, models)
@@ -100,15 +100,39 @@ def sync_schema(ctx):
     ctx.dest_db.create_all(bind=to_engine, checkfirst=True)
 
 
+def copy_query_objects(ctx, query):
+    scoped = ctx.dest_db.session
+    try:
+        scoped.remove()
+        session = scoped()
+        session.execute("SET FOREIGN_KEY_CHECKS = 0;")
+        objects = query.with_session(session).load_from_cache()
+        if objects:
+            for item in objects:
+                if isinstance(item, dict):
+                    instance = query.with_session(session).model_class(**item)
+                else:
+                    instance = item
+                session.add(instance)
+            session.commit()
+        session.close()
+    finally:
+        session.close()
+        scoped.remove()
+
+
 def sync_data(ctx):
     queries = parse_queries(ctx)
-    dest_session = ctx.dest_db.session
-    src_session = ctx.src_db.session
-    dest_session.execute("SET FOREIGN_KEY_CHECKS = 0;")
+    ctx.dest_db.start_profiler()
+    ctx.src_db.start_profiler()
     for query in queries:
-        src_query = query.with_session(src_session)
-        query.with_session(dest_session).merge_result(src_query)
-        dest_session.commit()
+        query.save_to_cache()
+        copy_query_objects(ctx, query)
+
+    ctx.dest_db.stop_profiler()
+    ctx.src_db.stop_profiler()
+    ctx.dest_db.profiler_stats()
+    ctx.src_db.profiler_stats()
 
 
 def sync_db(ctx):
