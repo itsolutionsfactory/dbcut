@@ -494,13 +494,3 @@ class _BoundDeclarativeMeta(DeclarativeMeta):
             bases[0]._db.models[name] = self
             bases[0]._db.tables[self.__table__.name] = self.__table__
             self._db = bases[0]._db
-
-
-class BaseModelConverter(ModelConverter):
-    """Class that converts a SQLAlchemy model into a dictionary of corresponding
-    marshmallow `Fields <marshmallow.fields.Field>`.
-    """
-
-    def fields_for_model(self, *args, **kwargs):
-        result = super(BaseModelConverter, self).fields_for_model(*args, **kwargs)
-        return result
