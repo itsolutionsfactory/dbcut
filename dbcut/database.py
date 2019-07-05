@@ -369,31 +369,26 @@ class Database(object):
     def _configure_serialization(self):
         from .models import _add_new_class
 
-        def init(self, *args, **kwargs):
-            super(self.__class__, self).__init__(*args, **kwargs)
-
         module_basename = ".".join(
             self.__class__.__module__.split(".")[:-1] + ["models"]
         )
 
         for class_ in self.models.values():
-            attrs = {"__init__": init}
-            attrs["__module__"] = module_basename
-
-            schema_class_name = "%s_marshmallow_schema" % class_.__name__
 
             class Meta(object):
                 model = class_
                 transient = True
-                # include_fk = True
-                model_converter = BaseModelConverter
+                include_fk = True
                 exclude = [
                     field_name
                     for field_name in list(set(class_.__mapper__.relationships.keys()))
                     if field_name.endswith("_collection")
                 ]
 
-            attrs["Meta"] = Meta
+            attrs = {"Meta": Meta}
+            attrs["__module__"] = module_basename
+            schema_class_name = "%s_marshmallow_schema" % class_.__name__
+
             for keyname in class_.__mapper__.relationships.keys():
 
                 if not keyname.endswith("_collection"):
