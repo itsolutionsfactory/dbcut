@@ -8,7 +8,8 @@ import threading
 
 from easy_profile import SessionProfiler, StreamReporter
 from io import open
-from marshmallow_sqlalchemy import ModelSchema
+from marshmallow import fields
+from marshmallow_sqlalchemy import ModelConverter, ModelSchema
 from sqlalchemy import MetaData, create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base
@@ -68,21 +69,21 @@ class BaseQuery(Query):
 
     @property
     def model_class(self):
-        return self.session.db.models[self._bind_mapper().class_.__name__]
+        return self._mapper_zero().class_
 
     @property
     def marshmallow_schema(self):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self):
-        dict_dump = self.marshmallow_schema.dump(self, many=True).data
+        dict_dump = self.marshmallow_schema.dump(list(self), many=True).data
         with open(self.cache_file, "w", encoding="utf-8") as fd:
             jsontext = to_json(dict_dump)
             fd.write(jsontext)
 
-    def load_from_cache(self, session=None, transient=False):
-        session = session or self.session
+    def load_from_cache(self):
         with open(self.cache_file, "r", encoding="utf-8") as fd:
+            print("loads objects from file : '%s'" % self.cache_file)
             return self.marshmallow_schema.loads(fd.read(), many=True).data
 
     def get_or_error(self, uid):
@@ -366,18 +367,58 @@ class Database(object):
         return referred_cls.__name__.lower() + "_collection"
 
     def _configure_serialization(self):
+        from .models import _add_new_class
+
+        def init(self, *args, **kwargs):
+            super(self.__class__, self).__init__(*args, **kwargs)
+
+        module_basename = ".".join(
+            self.__class__.__module__.split(".")[:-1] + ["models"]
+        )
 
         for class_ in self.models.values():
+            attrs = {"__init__": init}
+            attrs["__module__"] = module_basename
+
+            schema_class_name = "%s_marshmallow_schema" % class_.__name__
 
             class Meta(object):
                 model = class_
                 transient = True
-                # sqla_session = SessionProperty(self)
+                # include_fk = True
+                model_converter = BaseModelConverter
+                exclude = [
+                    field_name
+                    for field_name in list(set(class_.__mapper__.relationships.keys()))
+                    if field_name.endswith("_collection")
+                ]
 
-            schema_class_name = "%s_marshmallow_schema" % class_.__name__
+            attrs["Meta"] = Meta
+            for keyname in class_.__mapper__.relationships.keys():
 
-            schema_class = type(schema_class_name, (ModelSchema,), {"Meta": Meta})
+                if not keyname.endswith("_collection"):
+                    relationship = class_.__mapper__.relationships[keyname]
+                    target_name = relationship.target.name
+                    if target_name in self.models:
+                        target_schema_class_name = (
+                            "%s_marshmallow_schema" % self.models[target_name].__name__
+                        )
+                        target_schema_class_fullname = "%s.%s" % (
+                            attrs["__module__"],
+                            target_schema_class_name,
+                        )
+                        print(target_schema_class_fullname)
+                        if target_name == class_.__name__:
+                            attrs[keyname] = fields.Nested(
+                                target_schema_class_fullname,
+                                exclude=(keyname,),
+                                default=None,
+                            )
+                        else:
+                            attrs[keyname] = fields.Nested(target_schema_class_fullname)
 
+            schema_class = type(schema_class_name, (ModelSchema,), attrs)
+            _add_new_class(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
 
 
@@ -458,3 +499,13 @@ class _BoundDeclarativeMeta(DeclarativeMeta):
             bases[0]._db.models[name] = self
             bases[0]._db.tables[self.__table__.name] = self.__table__
             self._db = bases[0]._db
+
+
+class BaseModelConverter(ModelConverter):
+    """Class that converts a SQLAlchemy model into a dictionary of corresponding
+    marshmallow `Fields <marshmallow.fields.Field>`.
+    """
+
+    def fields_for_model(self, *args, **kwargs):
+        result = super(BaseModelConverter, self).fields_for_model(*args, **kwargs)
+        return result
