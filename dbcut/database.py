@@ -83,7 +83,6 @@ class BaseQuery(Query):
 
     def load_from_cache(self):
         with open(self.cache_file, "r", encoding="utf-8") as fd:
-            print("loads objects from file : '%s'" % self.cache_file)
             return self.marshmallow_schema.loads(fd.read(), many=True).data
 
     def get_or_error(self, uid):
@@ -402,7 +401,6 @@ class Database(object):
                             attrs["__module__"],
                             target_schema_class_name,
                         )
-                        print(target_schema_class_fullname)
                         if target_name == class_.__name__:
                             attrs[keyname] = fields.Nested(
                                 target_schema_class_fullname,
