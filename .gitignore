@@ -63,3 +63,6 @@ target/
 /.vscode/
 *.db
 *.sqlite
+
+# dbcut
+dbcut.yml
