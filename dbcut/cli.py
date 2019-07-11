@@ -32,14 +32,14 @@ def load_configuration_file(ctx, param, value):
         if os.path.isfile(value) and os.access(value, os.R_OK):
             return Configuration(value)
         else:
-            pass
+            ctx.fail("File '%s' does not exist" % value)
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument(
     "config",
     callback=load_configuration_file,
-    type=click.Path(writable=False, readable=True),
+    type=click.Path(writable=True, readable=True),
     required=True,
 )
 @click.version_option()
