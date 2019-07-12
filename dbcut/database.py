@@ -21,6 +21,7 @@ from sqlalchemy.orm import (Query, Session, class_mapper, mapper,
                             scoped_session, sessionmaker)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.schema import conv
+from sqlalchemy.sql import Insert
 
 from .compat import reraise, str, to_unicode
 from .configuration import DEFAULT_CONFIG
@@ -236,6 +237,7 @@ class Database(object):
         self.Model._session = SessionProperty(self)
         self.profiler = SessionProfiler(engine=self.engine)
 
+        event.listen(self.engine, "before_execute", self._before_execute, retval=True)
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
         event.listen(self.session, "before_flush", self._before_session_flush)
@@ -438,6 +440,13 @@ class Database(object):
             if conn.engine.dialect.name == "mysql":
                 self._echo_statement(cursor._last_executed)
 
+    def _before_execute(self, conn, element, multiparams, params):
+        if isinstance(element, Insert):
+            if conn.engine.dialect.name == "mysql":
+                element = element.prefix_with("IGNORE")
+            elif conn.engine.dialect.name == "sqlite":
+                element = element.prefix_with("OR IGNORE")
+        return element, multiparams, params
 
     def _before_session_flush(self, session, flush_context, instances):
         if session.bind.dialect.name == "mysql":

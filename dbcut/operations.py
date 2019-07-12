@@ -20,16 +20,6 @@ except ImportError:
     pass
 
 
-@event.listens_for(Engine, "before_execute", retval=True)
-def ignore_duplicate_insert(conn, element, multiparams, params):
-    if isinstance(element, Insert):
-        if conn.engine.dialect.name == "mysql":
-            element = element.prefix_with("IGNORE")
-        elif conn.engine.dialect.name == "sqlite":
-            element = element.prefix_with("OR IGNORE")
-    return element, multiparams, params
-
-
 def reflect_table(engine, table_name):
     metadata = MetaData(engine)
     return Table(table_name, metadata, autoload=True)
