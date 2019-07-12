@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import codecs
 import hashlib
-import locale
 import os
 import re
 import sys
@@ -171,9 +169,7 @@ class Database(object):
         self.connector = None
         self._reflected = False
         self.echo_sql = echo_sql
-        self.echo_stream = echo_stream or codecs.getwriter(
-            locale.getpreferredencoding()
-        )(sys.stdout)
+        self.echo_stream = echo_stream or sys.stdout
         self.cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
         self.uri = uri
         self._session_options = dict(session_options or {})
