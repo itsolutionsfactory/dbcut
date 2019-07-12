@@ -11,7 +11,6 @@ import uuid
 from functools import update_wrapper
 
 import click
-import sqlalchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Query
@@ -261,35 +260,3 @@ def to_json(obj, **kwargs):
     kwargs.setdefault("indent", 4)
     kwargs.setdefault("separators", (",", ": "))
     return json.dumps(obj, **kwargs)
-
-
-def recursive_expunge(obj, session):
-    def _recursive_expunge(_obj):
-        _instance_state = sqlalchemy.inspection.inspect(_obj)
-        _mapper = _instance_state.mapper
-        try:
-            session.expunge(_obj)
-            # print "expunge | %s" % _obj
-        except sqlalchemy.orm.exc.UnmappedInstanceError:
-            # print "sqlalchemy.orm.exc.UnmappedInstanceError | %s" % _obj
-            pass
-        except sqlalchemy.exc.InvalidRequestError:
-            # print "sqlalchemy.exc.UnmappedInstanceError | %s" % _obj
-            pass
-        if _mapper:
-            # _unloaded = [(_name, _rel) for (_name, _rel) in _mapper.relationships.items() if _name in _instance_state.unloaded]
-            _loaded_rels = [
-                i
-                for i in _mapper.relationships.items()
-                if i[0] not in _instance_state.unloaded
-            ]
-            for (_name, _rel) in _loaded_rels:
-                _loaded_rel_data = getattr(_obj, _name)
-                if _loaded_rel_data:
-                    if not _rel.uselist:
-                        _recursive_expunge(_loaded_rel_data)
-                    else:
-                        for _i in _loaded_rel_data:
-                            _recursive_expunge(_i)
-
-    _recursive_expunge(obj)

@@ -31,10 +31,6 @@ from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
 __all__ = ["Database"]
 
 
-class DoesNotExist(Exception):
-    pass
-
-
 class BaseQuery(Query):
     class QueryStr(str):
         # Useful for debug
@@ -88,24 +84,6 @@ class BaseQuery(Query):
     def load_from_cache(self):
         with open(self.cache_file, "r", encoding="utf-8") as fd:
             return self.marshmallow_schema.loads(fd.read(), many=True).data
-
-    def get_or_error(self, uid):
-        """Like :meth:`get` but raises an error if not found instead of
-        returning `None`.
-        """
-        rv = self.get(uid)
-        if rv is None:
-            raise DoesNotExist()
-        return rv
-
-    def first_or_error(self):
-        """Like :meth:`first` but raises an error if not found instead of
-        returning `None`.
-        """
-        rv = self.first()
-        if rv is None:
-            raise DoesNotExist()
-        return rv
 
 
 class BaseSession(Session):
