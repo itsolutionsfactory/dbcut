@@ -32,16 +32,7 @@ class Database(object):
     """
 
     session = SessionProperty()
-    Model = None
     query_class = BaseQuery
-
-    convention = {
-        "ix": "ix_%(column_0_label)s",
-        "uq": "uq_%(table_name)s_%(column_0_name)s",
-        "ck": "ck_%(table_name)s_%(constraint_name)s",
-        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-        "pk": "pk_%(table_name)s",
-    }
 
     def __init__(
         self,
@@ -64,10 +55,7 @@ class Database(object):
         self.models = {}
         self.tables = {}
         self.Model = automap_base(
-            cls=BaseModel,
-            name="Model",
-            metadata=MetaData(naming_convention=self.convention),
-            metaclass=_BoundDeclarativeMeta,
+            cls=BaseModel, name="Model", metaclass=_BoundDeclarativeMeta
         )
         self.Model._db = self
         self.Model._query = QueryProperty(self)
