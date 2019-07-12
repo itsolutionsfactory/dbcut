@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-import click
 import os
-from .helpers import Context, cached_property, make_pass_decorator
-from .operations import sync_db, inspect_db
+
+import click
 from tabulate import tabulate
 
-from .database import Database
 from .configuration import Configuration
+from .database import Database
+from .helpers import Context, cached_property, make_pass_decorator
+from .operations import inspect_db, sync_db
 
 click.disable_unicode_literals_warning = True
 
@@ -17,7 +18,9 @@ CONTEXT_SETTINGS = dict(auto_envvar_prefix="dbcut", help_option_names=["-h", "--
 class MigrationContext(Context):
     @cached_property
     def dest_db(self):
-        return Database(uri=self.config["databases"]["destination_uri"])
+        return Database(
+            uri=self.config["databases"]["destination_uri"], echo_sql=self.dump_sql
+        )
 
     @cached_property
     def src_db(self):
@@ -43,6 +46,9 @@ def load_configuration_file(ctx, param, value):
     required=True,
 )
 @click.version_option()
+@click.option(
+    "--dump-sql", is_flag=True, default=False, help="Dumps all sql insert queries."
+)
 @click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
 @click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
 @click.option(

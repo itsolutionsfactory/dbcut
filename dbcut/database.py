@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import codecs
 import hashlib
+import locale
 import os
+import re
 import sys
 import threading
 
 from easy_profile import SessionProfiler, StreamReporter
 from io import open
 from marshmallow import fields
-from marshmallow_sqlalchemy import ModelConverter, ModelSchema
+from marshmallow_sqlalchemy import ModelSchema
 from sqlalchemy import MetaData, create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base
@@ -79,7 +82,7 @@ class BaseQuery(Query):
         dict_dump = self.marshmallow_schema.dump(list(self), many=True).data
         with open(self.cache_file, "w", encoding="utf-8") as fd:
             jsontext = to_json(dict_dump)
-            fd.write(jsontext)
+            fd.write(to_unicode(jsontext))
 
     def load_from_cache(self):
         with open(self.cache_file, "r", encoding="utf-8") as fd:
@@ -140,8 +143,8 @@ class SessionProperty(object):
                 self._scoped_sessions[obj] = self._create_scoped_session(obj)
 
             scoped_session = self._scoped_sessions[obj]
-            if not obj._reflected:
-                obj.reflect(bind=scoped_session.bind)
+            # if not obj._reflected:
+            #     obj.reflect(bind=scoped_session.bind)
 
             return scoped_session
         return self
@@ -200,9 +203,20 @@ class Database(object):
         "pk": "pk_%(table_name)s",
     }
 
-    def __init__(self, uri=None, cache_dir=None, session_options=None):
+    def __init__(
+        self,
+        uri=None,
+        cache_dir=None,
+        session_options=None,
+        echo_sql=False,
+        echo_stream=None,
+    ):
         self.connector = None
         self._reflected = False
+        self.echo_sql = echo_sql
+        self.echo_stream = echo_stream or codecs.getwriter(
+            locale.getpreferredencoding()
+        )(sys.stdout)
         self.cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
         self.uri = uri
         self._session_options = dict(session_options or {})
@@ -221,6 +235,9 @@ class Database(object):
         self.Model._query = QueryProperty(self)
         self.Model._session = SessionProperty(self)
         self.profiler = SessionProfiler(engine=self.engine)
+
+        event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
+        event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
         event.listen(mapper, "after_configured", self._configure_serialization)
 
     def start_profiler(self):
@@ -275,11 +292,7 @@ class Database(object):
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            self.Model.prepare(
-                bind,
-                reflect=True,
-                name_for_collection_relationship=self._name_collection_relationship,
-            )
+            self.Model.prepare(bind, reflect=True)
             # for model in self.models.values():
             #     for relationship in model.__mapper__.relationships:
             #         relationship.cascade = CascadeOptions("all")
@@ -290,7 +303,11 @@ class Database(object):
                         constraint.name = conv(constraint.name)
 
             if bind.dialect.name == "mysql" and self.dialect != bind.dialect.name:
-                self.__fix_indexes__()
+                # Fix indexes
+                for index in self.get_all_indexes():
+                    index.name = conv(
+                        generate_valid_index_name(index, self.engine.dialect)
+                    )
             self._reflected = True
 
     def get_all_indexes(self):
@@ -306,11 +323,14 @@ class Database(object):
             bind = self.engine
         self.metadata.create_all(bind=bind, **kwargs)
 
-    def drop_all(self, bind=None, **kwargs):
+    def drop_all(self, bind=None):
         """Proxy for metadata.drop_all"""
         if bind is None:
             bind = self.engine
-        self.metadata.drop_all(bind=bind, **kwargs)
+
+        with bind.connect() as con:
+            for table in reversed(self.metadata.sorted_tables):
+                con.execute("DROP TABLE IF EXISTS %s" % table.name)
 
     def delete_all(self, bind=None, **kwargs):
         """Delete all table content."""
@@ -326,18 +346,6 @@ class Database(object):
                 trans.rollback()
                 raise
 
-    def __contains__(self, member):
-        return member in self.tables or member in self.models
-
-    def __getitem__(self, name):
-        if name in self:
-            if name in self.tables:
-                return self.tables[name]
-            else:
-                return self.models[name]
-        else:
-            raise KeyError(name)
-
     def close(self, **kwargs):
         """Proxy for Session.close"""
         self.session.close()
@@ -351,19 +359,6 @@ class Database(object):
         for model_name in sorted(self.models.keys()):
             data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
-
-    def __repr__(self):
-        engine = None
-        if self.connector is not None:
-            engine = self.engine
-        return "<%s engine=%r>" % (self.__class__.__name__, engine)
-
-    def __fix_indexes__(self):
-        for index in self.get_all_indexes():
-            index.name = conv(generate_valid_index_name(index, self.engine.dialect))
-
-    def _name_collection_relationship(self, base, local_cls, referred_cls, constraint):
-        return referred_cls.__name__.lower() + "_collection"
 
     def _configure_serialization(self):
         from .models import _add_new_class
@@ -414,67 +409,91 @@ class Database(object):
             _add_new_class(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
 
+    def _echo_statement(self, stm):
+        text = to_unicode(stm)
+        text = re.sub(r"\n+", "\n", text).strip()
+        if text.startswith(("CREATE TABLE", "BEGIN")):
+            self.echo_stream.write("\n")
+
+        self.echo_stream.write(text)
+        self.echo_stream.write(";\n")
+        self.echo_stream.flush()
+
+    def _before_custor_execute(
+        self, conn, cursor, statement, parameters, context, executemany
+    ):
+        if self.echo_sql:
+            if conn.engine.dialect.name == "sqlite":
+                conn.connection.connection.set_trace_callback(
+                    lambda x: self._echo_statement(x)
+                )
+            elif conn.engine.dialect.name == "postgresql":
+                self._echo_statement(cursor.mogrify(statement, parameters))
+
+    def _after_custor_execute(
+        self, conn, cursor, statement, parameters, context, executemany
+    ):
+        if self.echo_sql:
+            if conn.engine.dialect.name == "mysql":
+                self._echo_statement(cursor._last_executed)
+
+    def __contains__(self, member):
+        return member in self.tables or member in self.models
+
+    def __getitem__(self, name):
+        if name in self:
+            if name in self.tables:
+                return self.tables[name]
+            else:
+                return self.models[name]
+        else:
+            raise KeyError(name)
+
+    def __repr__(self):
+        engine = None
+        if self.connector is not None:
+            engine = self.engine
+        return "<%s engine=%r>" % (self.__class__.__name__, engine)
+
 
 class EngineConnector(object):
     def __init__(self, db):
-        # TODO: parse configuration here
-        self._config = {}
         self._db = db
         self._engine = None
-        self._connected_for = None
         self._lock = threading.Lock()
-
-    def apply_pool_defaults(self, options):
-        def _setdefault(optionkey, configkey):
-            value = self._config.get(configkey, None)
-            if value is not None:
-                options[optionkey] = value
-
-        _setdefault("pool_size", "SQLALCHEMY_POOL_SIZE")
-        _setdefault("pool_timeout", "SQLALCHEMY_POOL_TIMEOUT")
-        _setdefault("pool_recycle", "SQLALCHEMY_POOL_RECYCLE")
-        _setdefault("max_overflow", "SQLALCHEMY_MAX_OVERFLOW")
-        _setdefault("convert_unicode", "SQLALCHEMY_CONVERT_UNICODE")
-
-    def apply_driver_hacks(self, info, options):
-        """This method is called before engine creation and used to inject
-        driver specific hacks into the options.
-        """
-        if info.drivername == "mysql":
-            info.query.setdefault("charset", "utf8")
-            options.setdefault("pool_size", 10)
-            options.setdefault("pool_recycle", 3600)
-            from MySQLdb.cursors import SSCursor as MySQLdb_SSCursor
-
-            if MySQLdb_SSCursor is not None:
-                connect_args = options.get("connect_args", {})
-                connect_args.update({"cursorclass": MySQLdb_SSCursor})
-                options["connect_args"] = connect_args
-
-        elif info.drivername == "sqlite":
-            no_pool = options.get("pool_size") == 0
-            memory_based = info.database in (None, "", ":memory:")
-            if memory_based and no_pool:
-                raise ValueError(
-                    "SQLite in-memory database with an empty queue"
-                    " (pool_size = 0) is not possible due to data loss."
-                )
-        return options
 
     def get_engine(self):
         with self._lock:
-            uri = self._db.uri
-            echo = self._config.get("SQLALCHEMY_ECHO", False)
-            if (uri, echo) == self._connected_for:
-                return self._engine
-            info = make_url(uri)
-            options = {}
-            self.apply_pool_defaults(options)
-            self.apply_driver_hacks(info, options)
-            options["echo"] = echo
-            self._engine = engine = create_engine(info, **options)
-            self._connected_for = (uri, echo)
-            return engine
+            if self._engine is None:
+                options = {}
+                info = make_url(self._db.uri)
+                if info.drivername == "mysql":
+                    info.query.setdefault("charset", "utf8")
+                    options.setdefault("pool_size", 10)
+                    options.setdefault("pool_recycle", 3600)
+
+                    try:
+                        from MySQLdb.cursors import SSCursor
+                    except ImportError:
+                        SSCursor = None  # noqa
+
+                    if SSCursor is not None:
+                        connect_args = options.get("connect_args", {})
+                        connect_args.update({"cursorclass": SSCursor})
+                        options["connect_args"] = connect_args
+
+                elif info.drivername == "sqlite":
+                    no_pool = options.get("pool_size") == 0
+                    memory_based = info.database in (None, "", ":memory:")
+                    if memory_based and no_pool:
+                        raise ValueError(
+                            "SQLite in-memory database with an empty queue"
+                            " (pool_size = 0) is not possible due to data loss."
+                        )
+
+                self._engine = create_engine(info, **options)
+                self._engine._db = self._db
+            return self._engine
 
 
 class _BoundDeclarativeMeta(DeclarativeMeta):

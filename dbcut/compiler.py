@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.dialects import mysql
+from sqlalchemy.ext.compiler import compiles
 
 
 @compiles(mysql.LONGBLOB, "sqlite")
