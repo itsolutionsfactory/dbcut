@@ -4,9 +4,8 @@ import os
 import click
 from tabulate import tabulate
 
-from .configuration import Configuration
-from .database import Database
-from .helpers import Context, cached_property, make_pass_decorator
+from ..configuration import Configuration
+from .context import Context, make_pass_decorator
 from .operations import inspect_db, sync_db
 
 click.disable_unicode_literals_warning = True
@@ -16,15 +15,7 @@ CONTEXT_SETTINGS = dict(auto_envvar_prefix="dbcut", help_option_names=["-h", "--
 
 
 class MigrationContext(Context):
-    @cached_property
-    def dest_db(self):
-        return Database(
-            uri=self.config["databases"]["destination_uri"], echo_sql=self.dump_sql
-        )
-
-    @cached_property
-    def src_db(self):
-        return Database(uri=self.config["databases"]["source_uri"])
+    pass
 
 
 pass_context = make_pass_decorator(MigrationContext)

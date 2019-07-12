@@ -10,7 +10,7 @@ import yaml
 from io import open
 
 from .compat import reraise
-from .helpers import create_directory
+from .utils import create_directory
 
 logger = logging.getLogger(__name__)
 

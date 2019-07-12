@@ -18,10 +18,10 @@ from sqlalchemy.sql import Insert
 
 from .compat import to_unicode
 from .configuration import DEFAULT_CONFIG
-from .helpers import cached_property, generate_valid_index_name
 from .models import BaseModel, register_new_model
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
+from .utils import cached_property, generate_valid_index_name
 
 __all__ = ["Database"]
 
@@ -32,7 +32,6 @@ class Database(object):
     """
 
     session = SessionProperty()
-    session_class = None
     Model = None
     query_class = BaseQuery
 
@@ -134,9 +133,6 @@ class Database(object):
             if bind is None:
                 bind = self.engine
             self.Model.prepare(bind, reflect=True)
-            # for model in self.models.values():
-            #     for relationship in model.__mapper__.relationships:
-            #         relationship.cascade = CascadeOptions("all")
 
             for table in self.tables.values():
                 for constraint in table.constraints:

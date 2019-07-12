@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
-from .helpers import merge_dicts
+from .utils import merge_dicts
 
 
 class BaseSession(Session):

@@ -7,7 +7,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import select
 
-from .compat import to_unicode
+from ..compat import to_unicode
 
 # Disable pymysql warning
 try:
