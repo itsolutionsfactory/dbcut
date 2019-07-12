@@ -31,6 +31,7 @@ class Context(object):
         self.debug = False
         self.verbose = False
         self.force_yes = False
+        self.dump_sql = False
 
     def configure_log(self):
         logging.basicConfig()
