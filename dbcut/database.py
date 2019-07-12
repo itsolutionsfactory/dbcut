@@ -12,59 +12,18 @@ from sqlalchemy import MetaData, create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session, mapper, scoped_session, sessionmaker
+from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql import Insert
 
 from .compat import to_unicode
 from .configuration import DEFAULT_CONFIG
-from .helpers import cached_property, generate_valid_index_name, merge_dicts
+from .helpers import cached_property, generate_valid_index_name
 from .models import BaseModel, register_new_model
 from .query import BaseQuery, QueryProperty
+from .session import SessionProperty
 
 __all__ = ["Database"]
-
-
-class BaseSession(Session):
-    def __init__(self, db, **options):
-        self.db = db
-        bind = options.pop("bind", None) or db.engine
-        query_cls = options.pop("query_cls", None) or db.query_class
-
-        session_options = merge_dicts(
-            dict(autocommit=False, autoflush=False), db._session_options
-        )
-
-        Session.__init__(self, bind=bind, query_cls=query_cls, **session_options)
-
-
-class SessionProperty(object):
-
-    _scoped_sessions = {}
-
-    def __init__(self, db=None):
-        self.db = db
-
-    def _create_session_sessionmaker(self, db, options):
-        return sessionmaker(class_=BaseSession, db=db, **options)
-
-    def _create_scoped_session(self, db):
-        options = db._session_options
-        session_factory = self._create_session_sessionmaker(db, options)
-        return scoped_session(session_factory)
-
-    def __get__(self, obj, type_):
-        if self.db is not None:
-            obj = self.db
-        if obj is not None:
-
-            if obj not in self._scoped_sessions:
-                self._scoped_sessions[obj] = self._create_scoped_session(obj)
-
-            scoped_session = self._scoped_sessions[obj]
-
-            return scoped_session
-        return self
 
 
 class Database(object):
