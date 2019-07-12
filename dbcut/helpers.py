@@ -16,7 +16,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Query
 
-from .compat import reraise, to_unicode
+from .compat import to_unicode
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)  # noqa
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)  # noqa
@@ -81,14 +81,6 @@ class Context(object):
         if self.debug and not self.verbose:
             self.verbose = True
 
-    def handle_error(self):
-        exc_type, exc_value, tb = sys.exc_info()
-        if isinstance(exc_value, (click.ClickException, click.Abort)) or self.debug:
-            reraise(exc_type, exc_value, tb.tb_next)
-        else:
-            sys.stderr.write(u"\nError: %s\n" % exc_value)
-            sys.exit(1)
-
 
 def make_pass_decorator(context_klass, ensure=True):
     def decorator(f):
@@ -101,8 +93,9 @@ def make_pass_decorator(context_klass, ensure=True):
                 obj = ctx.find_object(context_klass)
             try:
                 return ctx.invoke(f, obj, *args[1:], **kwargs)
-            except:
-                obj.handle_error()
+            except (click.ClickException, click.Abort) as ex:
+                sys.stderr.write(u"\nError: %s\n" % ex)
+                sys.exit(1)
 
         return update_wrapper(new_func, f)
 
