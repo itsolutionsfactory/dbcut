@@ -1,4 +1,5 @@
 sqlalchemy
+marshmallow-sqlalchemy
 click
 mysqlclient
 psycopg2
