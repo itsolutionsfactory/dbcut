@@ -97,7 +97,10 @@ def to_unicode(obj, encoding="utf-8"):
     if is_bytes(obj):
         if hasattr(obj, "tobytes"):
             return str(obj.tobytes(), encoding)
-        return str(obj, encoding)
+        if hasattr(obj, "decode"):
+            return obj.decode(encoding)
+        else:
+            return str(obj, encoding)
 
     # string support
     if isinstance(obj, basestring):
