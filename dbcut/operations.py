@@ -2,11 +2,9 @@
 import warnings
 
 from mlalchemy import parse_query
-from sqlalchemy import MetaData, Table, event, func
-from sqlalchemy.engine import Engine
+from sqlalchemy import MetaData, Table, func
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import Insert
 from sqlalchemy.sql.expression import select
 
 from .compat import to_unicode
