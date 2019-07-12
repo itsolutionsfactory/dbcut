@@ -61,8 +61,8 @@ def copy_query_objects(ctx, query):
     try:
         scoped.remove()
         session = scoped()
-        objects = query.with_session(session).load_from_cache()
-        if objects:
+        count, objects = query.with_session(session).load_from_cache()
+        if count > 0:
             for item in objects:
                 if isinstance(item, dict):
                     instance = query.with_session(session).model_class(**item)

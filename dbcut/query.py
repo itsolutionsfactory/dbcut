@@ -2,12 +2,11 @@
 import hashlib
 import os
 
-from io import open
 from sqlalchemy.orm import Query, class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .compat import to_unicode
-from .json import to_json
+from .serializer import dump_json, load_json
 
 
 class BaseQuery(Query):
@@ -55,14 +54,18 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self):
-        dict_dump = self.marshmallow_schema.dump(list(self), many=True).data
-        with open(self.cache_file, "w", encoding="utf-8") as fd:
-            jsontext = to_json(dict_dump)
-            fd.write(to_unicode(jsontext))
+        dict_dump = {
+            "count": self.count(),
+            "data": self.marshmallow_schema.dump(self, many=True).data,
+        }
+        dump_json(dict_dump, self.cache_file)
 
     def load_from_cache(self):
-        with open(self.cache_file, "r", encoding="utf-8") as fd:
-            return self.marshmallow_schema.loads(fd.read(), many=True).data
+        dict_dump = load_json(self.cache_file)
+        return (
+            dict_dump["count"],
+            self.marshmallow_schema.load(dict_dump["data"], many=True).data,
+        )
 
 
 class QueryProperty(object):
