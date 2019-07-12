@@ -2,7 +2,7 @@
 import warnings
 
 from mlalchemy import parse_query
-from sqlalchemy import MetaData, Table, create_engine, event, func
+from sqlalchemy import MetaData, Table, event, func
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
@@ -10,7 +10,6 @@ from sqlalchemy.sql import Insert
 from sqlalchemy.sql.expression import select
 
 from .compat import to_unicode
-from .helpers import green
 
 # Disable pymysql warning
 try:
@@ -29,32 +28,6 @@ def ignore_duplicate_insert(conn, element, multiparams, params):
         elif conn.engine.dialect.name == "sqlite":
             element = element.prefix_with("OR IGNORE")
     return element, multiparams, params
-
-
-def database_exists(*args, **kwargs):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-
-        from sqlalchemy_utils.functions import database_exists
-
-        return database_exists(*args, **kwargs)
-
-
-def create_database(*args, **kwargs):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-
-        from sqlalchemy_utils.functions import create_database
-
-        return create_database(*args, **kwargs)
-
-
-def create_database_if_not_exists(ctx, engine):
-    if not database_exists(engine.url):
-        ctx.log(green(" create") + " ~> new database `%r`" % engine.url)
-        create_database(engine.url)
-        return True
-    return False
 
 
 def reflect_table(engine, table_name):
@@ -89,15 +62,10 @@ def parse_queries(ctx):
 
 
 def sync_schema(ctx):
-    from_engine = create_engine(ctx.src_db.engine.url)
-    to_engine = create_engine(ctx.dest_db.engine.url)
-
-    # Create database
-    create_database_if_not_exists(ctx, to_engine)
-
-    ctx.dest_db.reflect(bind=from_engine)
-    ctx.dest_db.drop_all(bind=to_engine, checkfirst=True)
-    ctx.dest_db.create_all(bind=to_engine, checkfirst=True)
+    ctx.src_db.reflect()
+    ctx.dest_db.reflect(bind=ctx.src_db.engine)
+    ctx.dest_db.drop_all()
+    ctx.dest_db.create_all(checkfirst=False)
 
 
 def copy_query_objects(ctx, query):
@@ -144,11 +112,10 @@ def inspect_db(ctx):
     infos = dict()
     for table_name, size in count_all(ctx.src_db.engine):
         infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
-    if database_exists(ctx.dest_db.engine.url):
-        for table_name, size in count_all(ctx.dest_db.engine):
-            infos[table_name]["dest_db_size"] = size
-            diff = infos[table_name]["src_db_size"] - size
-            infos[table_name]["diff"] = diff
+    for table_name, size in count_all(ctx.dest_db.engine):
+        infos[table_name]["dest_db_size"] = size
+        diff = infos[table_name]["src_db_size"] - size
+        infos[table_name]["diff"] = diff
 
     headers = ["Table", "Source DB count", "Destination DB count", "Diff"]
     rows = [
