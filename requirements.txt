@@ -1,5 +1,4 @@
 sqlalchemy
-sqlalchemy_utils
 click
 mysqlclient
 psycopg2
