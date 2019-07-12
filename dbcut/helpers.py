@@ -214,11 +214,12 @@ def generate_valid_index_name(index, dialect):
     return full_index_name
 
 
-def create_directory(dir_path, exist_ok=True):
+def create_directory(dir_path):
     absolute_dir_path = os.path.realpath(
         os.path.join(os.getcwd(), os.path.expanduser(dir_path))
     )
-    os.makedirs(absolute_dir_path, exist_ok=exist_ok)
+    if not os.path.exists(absolute_dir_path):
+        os.makedirs(absolute_dir_path)
     return absolute_dir_path
 
 
