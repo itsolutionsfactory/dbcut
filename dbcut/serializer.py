@@ -4,6 +4,7 @@ import decimal
 import json
 import uuid
 
+from io import open
 from sqlalchemy.orm import Query
 
 from .compat import to_unicode
@@ -46,10 +47,19 @@ class JSONEncoder(json.JSONEncoder):
         return super(JSONEncoder, self).default(obj)
 
 
-def to_json(obj, **kwargs):
-    """Dumps object to json string. """
-    kwargs.setdefault("ensure_ascii", False)
-    kwargs.setdefault("cls", JSONEncoder)
-    kwargs.setdefault("indent", 4)
-    kwargs.setdefault("separators", (",", ": "))
-    return json.dumps(obj, **kwargs)
+def dump_json(data, filepath):
+    """Serialize ``data`` as a JSON formatted stream to ``filepath``"""
+    kwargs = {
+        "ensure_ascii": False,
+        "indent": 2,
+        "separators": (",", ": "),
+        "cls": JSONEncoder,
+    }
+    with open(filepath, "w", encoding="utf-8") as fd:
+        fd.write(json.dumps(data, **kwargs))
+
+
+def load_json(filepath):
+    """Deserialize ``filepath`` to a Python object."""
+    with open(filepath, "r", encoding="utf-8") as fd:
+        return json.load(fd)
