@@ -73,7 +73,6 @@ def copy_query_objects(ctx, query):
     try:
         scoped.remove()
         session = scoped()
-        session.execute("SET FOREIGN_KEY_CHECKS = 0;")
         objects = query.with_session(session).load_from_cache()
         if objects:
             for item in objects:

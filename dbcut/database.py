@@ -238,6 +238,7 @@ class Database(object):
 
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
+        event.listen(self.session, "before_flush", self._before_session_flush)
         event.listen(mapper, "after_configured", self._configure_serialization)
 
     def start_profiler(self):
@@ -436,6 +437,11 @@ class Database(object):
         if self.echo_sql:
             if conn.engine.dialect.name == "mysql":
                 self._echo_statement(cursor._last_executed)
+
+
+    def _before_session_flush(self, session, flush_context, instances):
+        if session.bind.dialect.name == "mysql":
+            session.execute("SET FOREIGN_KEY_CHECKS = 0")
 
     def __contains__(self, member):
         return member in self.tables or member in self.models
