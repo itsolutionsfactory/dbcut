@@ -23,10 +23,11 @@ from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.schema import conv
 from sqlalchemy.sql import Insert
 
-from .compat import reraise, str, to_unicode
+from .compat import str, to_unicode
 from .configuration import DEFAULT_CONFIG
 from .helpers import (cached_property, generate_valid_index_name, merge_dicts,
                       to_json)
+from .models import BaseModel, register_new_model
 
 __all__ = ["Database"]
 
@@ -91,8 +92,9 @@ class BaseSession(Session):
         self.db = db
         bind = options.pop("bind", None) or db.engine
         query_cls = options.pop("query_cls", None) or db.query_class
+
         session_options = merge_dicts(
-            dict(autocommit=True, autoflush=True), db._session_options
+            dict(autocommit=False, autoflush=False), db._session_options
         )
 
         Session.__init__(self, bind=bind, query_cls=query_cls, **session_options)
@@ -122,33 +124,9 @@ class SessionProperty(object):
                 self._scoped_sessions[obj] = self._create_scoped_session(obj)
 
             scoped_session = self._scoped_sessions[obj]
-            # if not obj._reflected:
-            #     obj.reflect(bind=scoped_session.bind)
 
             return scoped_session
         return self
-
-
-class BaseModel(object):
-
-    __table_args__ = {"extend_existing": True, "sqlite_autoincrement": True}
-
-    @classmethod
-    def create(cls, **kwargs):
-        record = cls()
-        for key, value in kwargs.items():
-            setattr(record, key, value)
-        try:
-            cls._db.session.add(record)
-            cls._db.session.commit()
-            return record
-        except:
-            exc_type, exc_value, tb = sys.exc_info()
-            cls._db.session.rollback()
-            reraise(exc_type, exc_value, tb.tb_next)
-
-    def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, inspect(self).identity)
 
 
 class QueryProperty(object):
@@ -342,8 +320,6 @@ class Database(object):
             print(model_name.ljust(25), data)
 
     def _configure_serialization(self):
-        from .models import _add_new_class
-
         module_basename = ".".join(
             self.__class__.__module__.split(".")[:-1] + ["models"]
         )
@@ -387,7 +363,7 @@ class Database(object):
                             attrs[keyname] = fields.Nested(target_schema_class_fullname)
 
             schema_class = type(schema_class_name, (ModelSchema,), attrs)
-            _add_new_class(schema_class)
+            register_new_model(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
 
     def _echo_statement(self, stm):
@@ -491,11 +467,9 @@ class EngineConnector(object):
 
 class _BoundDeclarativeMeta(DeclarativeMeta):
     def __new__(cls, name, bases, d):
-        from .models import _add_new_class
-
         d["__module__"] = ".".join(__name__.split(".")[:-1] + ["models"])
         class_ = DeclarativeMeta.__new__(cls, name, bases, d)
-        _add_new_class(class_)
+        register_new_model(class_)
         return class_
 
     def __init__(self, name, bases, d):
