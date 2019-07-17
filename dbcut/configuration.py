@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG = {
     "queries": [],
-    "convert_unicode": True,
-    "echo": False,
     "cache": os.path.expanduser("~/.cache/dbcut"),
     "log_level": 3,
     "log_file": ":stderr:",
     "log_format": "[%(levelname)8s] [%(asctime)s] [%(name)s]: %(message)s",
+    "default_limit": 1000,
 }
 
 
