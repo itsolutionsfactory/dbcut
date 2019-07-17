@@ -82,7 +82,8 @@ def sync_data(ctx):
     ctx.dest_db.start_profiler()
     ctx.src_db.start_profiler()
     for query in queries:
-        query.save_to_cache()
+        if not query.is_cached:
+            query.save_to_cache()
         copy_query_objects(ctx, query)
 
     ctx.dest_db.stop_profiler()
