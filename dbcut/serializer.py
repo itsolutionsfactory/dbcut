@@ -47,16 +47,21 @@ class JSONEncoder(json.JSONEncoder):
         return super(JSONEncoder, self).default(obj)
 
 
-def dump_json(data, filepath):
-    """Serialize ``data`` as a JSON formatted stream to ``filepath``"""
+def to_json(data, **extra_kwargs):
     kwargs = {
         "ensure_ascii": False,
         "indent": 2,
         "separators": (",", ": "),
         "cls": JSONEncoder,
     }
+    kwargs.update(extra_kwargs)
+    return json.dumps(data, **kwargs)
+
+
+def dump_json(data, filepath):
+    """Serialize ``data`` as a JSON formatted stream to ``filepath``"""
     with open(filepath, "w", encoding="utf-8") as fd:
-        fd.write(json.dumps(data, **kwargs))
+        fd.write(to_json(data))
 
 
 def load_json(filepath):

@@ -6,10 +6,13 @@ from sqlalchemy.orm import Query, class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .compat import to_unicode
-from .serializer import dump_json, load_json
+from .serializer import dump_json, load_json, to_json
 
 
 class BaseQuery(Query):
+
+    cache_key = None
+
     class QueryStr(str):
         # Useful for debug
         def __repr__(self):
@@ -32,18 +35,34 @@ class BaseQuery(Query):
 
         return self.QueryStr(raw_sql)
 
-    @property
-    def cache_key(self):
-        sha1_hash = hashlib.sha1(self.render().encode("utf-8")).hexdigest()
-        return "%s-%s" % (self.model_class.__name__, sha1_hash)
+    def options(self, *args, **kwargs):
+        query = self
+        cache_key = kwargs.get("cache_key", None)
+        if cache_key:
+            query = self._clone()
+            if isinstance(cache_key, dict):
+                cache_key = to_json(cache_key)
+            query.cache_key = hashlib.sha1(
+                to_unicode(cache_key).encode("utf-8")
+            ).hexdigest()
+
+        if args:
+            return query._options(False, *args)
+        else:
+            return query
 
     @property
     def cache_file(self):
-        return "%s.json" % os.path.join(self.session.db.cache_dir, self.cache_key)
+        if self.cache_key is None:
+            raise RuntimeError("Missing 'cache_key'")
+        filename = "%s-%s.json" % (self.model_class.__name__, self.cache_key)
+        return os.path.join(self.session.db.cache_dir, filename)
 
     @property
     def is_cached(self):
-        return os.path.isfile(self.cache_file)
+        if self.cache_key is not None:
+            return os.path.isfile(self.cache_file)
+        return False
 
     @property
     def model_class(self):
