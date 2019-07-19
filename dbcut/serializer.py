@@ -7,7 +7,7 @@ import uuid
 from io import open
 from sqlalchemy.orm import Query
 
-from .compat import to_unicode
+from .utils import to_unicode
 
 
 class JSONEncoder(json.JSONEncoder):

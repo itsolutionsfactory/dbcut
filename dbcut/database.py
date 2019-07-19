@@ -8,7 +8,7 @@ import threading
 from easy_profile import SessionProfiler, StreamReporter
 from marshmallow import fields
 from marshmallow_sqlalchemy import ModelSchema
-from sqlalchemy import MetaData, create_engine, event, inspect
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -16,12 +16,11 @@ from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql import Insert
 
-from .compat import to_unicode
 from .configuration import DEFAULT_CONFIG
 from .models import BaseModel, register_new_model
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import cached_property, generate_valid_index_name
+from .utils import cached_property, generate_valid_index_name, to_unicode
 
 __all__ = ["Database"]
 

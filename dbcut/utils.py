@@ -2,6 +2,42 @@
 import os
 
 
+def reraise(tp, value, tb=None):
+    if value.__traceback__ is not tb:
+        raise value.with_traceback(tb)
+    raise value
+
+
+def is_bytes(x):
+    return isinstance(x, (bytes, memoryview, bytearray))
+
+
+def to_unicode(obj, encoding="utf-8"):
+    """
+    Convert ``obj`` to unicode"""
+    # unicode support
+    if isinstance(obj, str):
+        return obj
+
+    # bytes support
+    if is_bytes(obj):
+        if hasattr(obj, "tobytes"):
+            return str(obj.tobytes(), encoding)
+        if hasattr(obj, "decode"):
+            return obj.decode(encoding)
+        else:
+            return str(obj, encoding)
+
+    # string support
+    if isinstance(obj, (str, bytes)):
+        if hasattr(obj, "decode"):
+            return obj.decode(encoding)
+        else:
+            return str(obj, encoding)
+
+    return str(obj)
+
+
 def merge_dicts(*dict_args):
     """Merge given dicts into a new dict."""
     result = {}

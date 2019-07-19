@@ -1,21 +1,11 @@
 # -*- coding: utf-8 -*-
-import warnings
-
 from mlalchemy import parse_query
 from sqlalchemy import MetaData, Table, func
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import select
 
-from ..compat import to_unicode
-
-# Disable pymysql warning
-try:
-    import pymysql
-
-    warnings.filterwarnings("ignore", category=pymysql.Warning)
-except ImportError:
-    pass
+from ..utils import to_unicode
 
 
 def reflect_table(engine, table_name):

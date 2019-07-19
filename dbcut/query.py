@@ -5,8 +5,8 @@ import os
 from sqlalchemy.orm import Query, class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
-from .compat import to_unicode
 from .serializer import dump_json, load_json, to_json
+from .utils import to_unicode
 
 
 class BaseQuery(Query):
