@@ -30,34 +30,28 @@ def sync_schema(ctx):
     ctx.dest_db.create_all(checkfirst=False)
 
 
-def copy_query_objects(ctx, query):
-    scoped = ctx.dest_db.session
-    try:
-        scoped.remove()
-        session = scoped()
-        count, objects = query.with_session(session).load_from_cache()
-        if count > 0:
-            for item in objects:
-                if isinstance(item, dict):
-                    instance = query.with_session(session).model_class(**item)
-                else:
-                    instance = item
-                session.add(instance)
-            session.commit()
-        session.close()
-    finally:
-        session.close()
-        scoped.remove()
+def copy_query_objects(session, query):
+    count, objects = query.with_session(session).load_from_cache()
+    if count > 0:
+        for item in objects:
+            if isinstance(item, dict):
+                instance = query.with_session(session).model_class(**item)
+            else:
+                instance = item
+            session.add(instance)
+        session.commit()
 
 
 def sync_data(ctx):
     queries = parse_queries(ctx)
     ctx.dest_db.start_profiler()
     ctx.src_db.start_profiler()
-    for query in queries:
-        if not query.is_cached:
-            query.save_to_cache()
-        copy_query_objects(ctx, query)
+
+    with ctx.dest_db.no_fkc_session() as session:
+        for query in queries:
+            if not query.is_cached:
+                query.save_to_cache()
+            copy_query_objects(session, query)
 
     ctx.dest_db.stop_profiler()
     ctx.src_db.stop_profiler()
