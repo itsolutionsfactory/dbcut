@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy.dialects import mysql
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import Insert
 
 
 @compiles(mysql.LONGBLOB, "sqlite")
@@ -52,3 +53,18 @@ def compile_postgresql_varchar(type_, compiler, **kw):
 @compiles(mysql.DATETIME, "postgresql")
 def compile_postgresql_datetime(type_, compiler, **kw):
     return "TIMESTAMP WITHOUT TIME ZONE"
+
+
+@compiles(Insert, "postgresql")
+def compile_insert_on_duplicate_ignore_postgresql(element, compiler, **kw):
+    return "%s ON CONFLICT DO NOTHING" % compiler.visit_insert(element, **kw)
+
+
+@compiles(Insert, "mysql")
+def compile_insert_on_duplicate_ignore_mysql(element, compiler, **kw):
+    return compiler.visit_insert(element.prefix_with("IGNORE"), **kw)
+
+
+@compiles(Insert, "sqlite")
+def compile_insert_on_duplicate_ignore_sqlite(element, compiler, **kw):
+    return compiler.visit_insert(element.prefix_with("OR IGNORE"), **kw)
