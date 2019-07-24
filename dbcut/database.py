@@ -362,6 +362,8 @@ class EngineConnector(object):
                         connect_args = options.get("connect_args", {})
                         connect_args.update({"cursorclass": SSCursor})
                         options["connect_args"] = connect_args
+                elif info.drivername == "postgresql":
+                    options.setdefault("use_batch_mode", True)
 
                 elif info.drivername == "sqlite":
                     no_pool = options.get("pool_size") == 0
