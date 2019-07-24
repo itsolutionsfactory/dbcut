@@ -280,6 +280,7 @@ class Database(object):
 
     def _echo_statement(self, stm):
         text = to_unicode(stm)
+        text = re.sub(r";", ";\n", text)
         text = re.sub(r"\n+", "\n", text).strip()
         if text.startswith(("CREATE TABLE", "BEGIN")):
             self.echo_stream.write("\n")
@@ -296,8 +297,6 @@ class Database(object):
                 conn.connection.connection.set_trace_callback(
                     lambda x: self._echo_statement(x)
                 )
-            elif conn.engine.dialect.name == "postgresql":
-                self._echo_statement(cursor.mogrify(statement, parameters))
 
     def _after_custor_execute(
         self, conn, cursor, statement, parameters, context, executemany
@@ -317,6 +316,8 @@ class Database(object):
     def _before_session_flush(self, session, flush_context, instances):
         if session.bind.dialect.name == "mysql":
             session.execute("SET FOREIGN_KEY_CHECKS = 0")
+            if conn.engine.dialect.name == "postgresql":
+                self._echo_statement(cursor.query)
 
     def __contains__(self, member):
         return member in self.tables or member in self.models
