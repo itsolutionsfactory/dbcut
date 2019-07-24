@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import re
 import sys
 import threading
+from contextlib import contextmanager
 
 from easy_profile import SessionProfiler, StreamReporter
 from marshmallow import fields
@@ -180,6 +181,36 @@ class Database(object):
             if self.connector is not None:
                 self.connector.get_engine().dispose()
                 self.connector = None
+
+    @contextmanager
+    def no_fkc_session(self):
+        """ A context manager that give a session with all foreign key constraints disabled. """
+        scoped_session = self.session
+        try:
+            scoped_session.remove()
+            session = scoped_session()
+            if session.bind.dialect.name == "mysql":
+                session.execute("SET FOREIGN_KEY_CHECKS = 0")
+            elif session.bind.dialect.name == "sqlite":
+                session.execute("PRAGMA foreign_keys = OFF")
+            elif session.bind.dialect.name == "postgresql":
+                for table_name in self.tables:
+                    session.execute("ALTER TABLE %s DISABLE TRIGGER ALL" % table_name)
+
+            yield session
+
+            if session.bind.dialect.name == "mysql":
+                session.execute("SET FOREIGN_KEY_CHECKS = 1")
+            elif session.bind.dialect.name == "sqlite":
+                session.execute("PRAGMA foreign_keys = ON")
+            elif session.bind.dialect.name == "postgresql":
+                for table in self.tables:
+                    session.execute("ALTER TABLE %s ENABLE TRIGGER ALL" % table_name)
+
+            session.close()
+        finally:
+            session.close()
+            scoped_session.remove()
 
     def show(self):
         """ Return small database content representation."""
