@@ -8,19 +8,22 @@ import threading
 from easy_profile import SessionProfiler, StreamReporter
 from marshmallow import fields
 from marshmallow_sqlalchemy import ModelSchema
-from sqlalchemy import create_engine, event, inspect
+from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql import Insert
+from sqlalchemy.sql.expression import select
 
 from .configuration import DEFAULT_CONFIG
 from .models import BaseModel, register_new_model
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import cached_property, generate_valid_index_name, to_unicode
+from .utils import (aslist, cached_property, generate_valid_index_name,
+                    to_unicode)
 
 __all__ = ["Database"]
 
@@ -183,6 +186,19 @@ class Database(object):
         for model_name in sorted(self.models.keys()):
             data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
+
+    @aslist
+    def count_all(self):
+        inspector = Inspector.from_engine(self.engine)
+        metadata = MetaData(self.engine)
+        tables = [
+            Table(table_name, metadata, autoload=True)
+            for table_name in inspector.get_table_names()
+        ]
+        raw_conn = self.engine.connect()
+        for table in tables:
+            count_query = select([func.count()]).select_from(table)
+            yield table.name, raw_conn.execute(count_query).scalar()
 
     def _configure_serialization(self):
         module_basename = ".".join(

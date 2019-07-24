@@ -86,6 +86,15 @@ def generate_valid_index_name(index, dialect):
     return full_index_name
 
 
+def aslist(generator):
+    """A decorator to convert a generator into a list."""
+
+    def wrapper(*args, **kwargs):
+        return list(generator(*args, **kwargs))
+
+    return wrapper
+
+
 def create_directory(dir_path):
     absolute_dir_path = os.path.realpath(
         os.path.join(os.getcwd(), os.path.expanduser(dir_path))

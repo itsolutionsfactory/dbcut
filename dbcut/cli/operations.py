@@ -1,25 +1,8 @@
 # -*- coding: utf-8 -*-
 from mlalchemy import parse_query
-from sqlalchemy import MetaData, Table, func
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql.expression import select
 
 from ..utils import to_unicode
-
-
-def reflect_table(engine, table_name):
-    metadata = MetaData(engine)
-    return Table(table_name, metadata, autoload=True)
-
-
-def count_all(engine):
-    raw_conn = engine.connect()
-    inspector = Inspector.from_engine(engine)
-    tables = [reflect_table(engine, name) for name in inspector.get_table_names()]
-    for table in tables:
-        count_query = select([func.count()]).select_from(table)
-        yield table.name, raw_conn.execute(count_query).scalar()
 
 
 def parse_queries(ctx):
@@ -89,9 +72,9 @@ def sync_db(ctx):
 
 def inspect_db(ctx):
     infos = dict()
-    for table_name, size in count_all(ctx.src_db.engine):
+    for table_name, size in ctx.src_db.count_all():
         infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
-    for table_name, size in count_all(ctx.dest_db.engine):
+    for table_name, size in ctx.dest_db.count_all():
         infos[table_name]["dest_db_size"] = size
         diff = infos[table_name]["src_db_size"] - size
         infos[table_name]["diff"] = diff
