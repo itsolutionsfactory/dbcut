@@ -126,12 +126,9 @@ class Database(object):
                     if constraint.name:
                         constraint.name = conv(constraint.name)
 
-            if bind.dialect.name == "mysql" and self.dialect != bind.dialect.name:
-                # Fix indexes
-                for index in self.get_all_indexes():
-                    index.name = conv(
-                        generate_valid_index_name(index, self.engine.dialect)
-                    )
+            for index in self.get_all_indexes():
+                index.name = conv(generate_valid_index_name(index, self.engine.dialect))
+
             self._reflected = True
 
     def get_all_indexes(self):
