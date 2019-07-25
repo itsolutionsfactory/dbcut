@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_CONFIG = {
-    "queries": [],
     "cache": os.path.expanduser("~/.cache/dbcut"),
     "log_level": 3,
     "log_file": ":stderr:",
@@ -52,6 +51,8 @@ class Configuration(dict):
                 exc_type, exc_value, tb = sys.exc_info()
                 reraise(exc_type, exc_value, tb.tb_next)
         self["cache"] = create_directory(self["cache"])
+        if self.get("queries", None) is None:
+            self["queries"] = []
 
         return True
 
