@@ -55,8 +55,6 @@ class Database(object):
         self._session_options.setdefault("autoflush", False)
         self._session_options.setdefault("autocommit", False)
         self._engine_lock = threading.Lock()
-        self.models = {}
-        self.tables = {}
         self.Model = automap_base(
             cls=BaseModel, name="Model", metaclass=_BoundDeclarativeMeta
         )
@@ -179,6 +177,14 @@ class Database(object):
             if self.connector is not None:
                 self.connector.get_engine().dispose()
                 self.connector = None
+
+    @property
+    def models(self):
+        return dict(self.Model._decl_class_registry)
+
+    @property
+    def tables(self):
+        return self.metadata.tables
 
     @contextmanager
     def no_fkc_session(self):
@@ -372,10 +378,3 @@ class _BoundDeclarativeMeta(DeclarativeMeta):
         class_ = DeclarativeMeta.__new__(cls, name, bases, d)
         register_new_model(class_)
         return class_
-
-    def __init__(self, name, bases, d):
-        DeclarativeMeta.__init__(self, name, bases, d)
-        if hasattr(bases[0], "_db"):
-            bases[0]._db.models[name] = self
-            bases[0]._db.tables[self.__table__.name] = self.__table__
-            self._db = bases[0]._db
