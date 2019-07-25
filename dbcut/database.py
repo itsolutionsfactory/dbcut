@@ -193,7 +193,9 @@ class Database(object):
                 session.execute("PRAGMA foreign_keys = OFF")
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
-                    session.execute("ALTER TABLE %s DISABLE TRIGGER ALL" % table_name)
+                    session.execute(
+                        "ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name
+                    )
 
             yield session
 
@@ -203,7 +205,9 @@ class Database(object):
                 session.execute("PRAGMA foreign_keys = ON")
             elif session.bind.dialect.name == "postgresql":
                 for table in self.tables:
-                    session.execute("ALTER TABLE %s ENABLE TRIGGER ALL" % table_name)
+                    session.execute(
+                        "ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name
+                    )
 
             session.close()
         finally:
