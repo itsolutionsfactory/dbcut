@@ -59,6 +59,7 @@ class Database(object):
             cls=BaseModel, name="Model", metaclass=_BoundDeclarativeMeta
         )
         self.Model._db = self
+        self._model_class_registry = {}
         self.Model._query = QueryProperty(self)
         self.Model._session = SessionProperty(self)
         self.profiler = SessionProfiler(engine=self.engine)
@@ -174,7 +175,7 @@ class Database(object):
 
     @property
     def models(self):
-        return dict(self.Model._decl_class_registry)
+        return self._model_class_registry
 
     @property
     def tables(self):
@@ -393,3 +394,9 @@ class _BoundDeclarativeMeta(DeclarativeMeta):
         class_ = DeclarativeMeta.__new__(cls, name, bases, d)
         register_new_model(class_)
         return class_
+
+    def __init__(self, name, bases, d):
+        DeclarativeMeta.__init__(self, name, bases, d)
+        if hasattr(bases[0], "_db"):
+            bases[0]._db._model_class_registry[name] = self
+            self._db = bases[0]._db
