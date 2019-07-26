@@ -205,7 +205,7 @@ class Database(object):
             elif session.bind.dialect.name == "sqlite":
                 session.execute("PRAGMA foreign_keys = ON")
             elif session.bind.dialect.name == "postgresql":
-                for table in self.tables:
+                for table_name in self.tables:
                     session.execute(
                         "ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name
                     )
