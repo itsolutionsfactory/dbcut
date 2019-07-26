@@ -22,18 +22,7 @@ class BaseQuery(Query):
         """Generate an SQL expression string with bound parameters rendered inline
         for the given SQLAlchemy query.
         """
-
-        statement = self.with_labels().statement
-        raw_sql = to_unicode(statement.compile(compile_kwargs={"literal_binds": True}))
-
-        try:  # pragma: no cover
-            import sqlparse
-
-            raw_sql = sqlparse.format(raw_sql, reindent=reindent)
-        except ImportError:  # pragma: no cover
-            return raw_sql
-
-        return self.QueryStr(raw_sql)
+        return self.QueryStr(render_query(self))
 
     def options(self, *args, **kwargs):
         query = self
@@ -98,3 +87,21 @@ class QueryProperty(object):
                 return self.db.query_class(mapper, session=self._db.session)
         except UnmappedClassError:
             return self
+
+
+def render_query(query, reindent=True):
+    """Generate an SQL expression string with bound parameters rendered inline
+    for the given SQLAlchemy statement.
+    """
+
+    compiled = query.statement.compile(
+        dialect=query.session.get_bind().dialect, compile_kwargs={"literal_binds": True}
+    )
+
+    raw_sql = str(compiled)
+    try:  # pragma: no cover
+        import sqlparse
+
+        return sqlparse.format(raw_sql, reindent=reindent)
+    except ImportError:  # pragma: no cover
+        return raw_sql
