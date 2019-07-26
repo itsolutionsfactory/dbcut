@@ -16,7 +16,6 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
-from sqlalchemy.sql import Insert
 from sqlalchemy.sql.expression import select
 
 from .configuration import DEFAULT_CONFIG
