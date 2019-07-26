@@ -66,14 +66,16 @@ def sync_db(ctx):
 
 def inspect_db(ctx):
     infos = dict()
-    for table_name, size in ctx.src_db.count_all():
+    for table_name, size in ctx.src_db.count_all(estimate=True):
         infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
     for table_name, size in ctx.dest_db.count_all():
+        if table_name not in infos:
+            infos[table_name] = {"src_db_size": 0}
         infos[table_name]["dest_db_size"] = size
         diff = infos[table_name]["src_db_size"] - size
         infos[table_name]["diff"] = diff
 
-    headers = ["Table", "Source DB count", "Destination DB count", "Diff"]
+    headers = ["Table", "Source estimated size", "Destination size", "Diff"]
     rows = [
         (
             k,

@@ -221,17 +221,34 @@ class Database(object):
             print(model_name.ljust(25), data)
 
     @aslist
-    def count_all(self):
+    def count_all(self, estimate=True):
         inspector = Inspector.from_engine(self.engine)
         metadata = MetaData(self.engine)
-        tables = [
-            Table(table_name, metadata, autoload=True)
-            for table_name in inspector.get_table_names()
-        ]
-        raw_conn = self.engine.connect()
-        for table in tables:
-            count_query = select([func.count()]).select_from(table)
-            yield table.name, raw_conn.execute(count_query).scalar()
+        table_names = inspector.get_table_names()
+        with self.engine.connect() as con:
+            if estimate and self.dialect == "mysql":
+                rows = con.execute(
+                    "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
+                    % self.engine.url.database
+                )
+                for row in rows:
+                    if row["table_name"] in table_names:
+                        table_names.pop(table_names.index(row["table_name"]))
+                        yield row["table_name"], row["table_rows"]
+
+            tables = [
+                Table(table_name, metadata, autoload=True) for table_name in table_names
+            ]
+
+            for table in tables:
+                pks = sorted(
+                    (c for c in table.c if c.primary_key), key=lambda c: c.name
+                )
+                if pks:
+                    count_query = select([func.count(pks[0])]).select_from(table)
+                else:
+                    count_query = select([func.count()]).select_from(table)
+                yield table.name, con.execute(count_query).scalar()
 
     def _configure_serialization(self):
         module_basename = ".".join(
