@@ -27,7 +27,7 @@ def sync_schema(ctx):
     ctx.src_db.reflect()
     ctx.dest_db.reflect(bind=ctx.src_db.engine)
     ctx.dest_db.drop_all()
-    ctx.dest_db.create_all(checkfirst=False)
+    ctx.dest_db.create_all(checkfirst=True)
 
 
 def copy_query_objects(session, query):
