@@ -40,6 +40,7 @@ def copy_query_objects(session, query):
                 instance = item
             session.add(instance)
         session.commit()
+        session.expunge_all()
 
 
 def sync_data(ctx):
