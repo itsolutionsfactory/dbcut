@@ -261,10 +261,15 @@ class Database(object):
                 model = class_
                 transient = True
                 include_fk = True
+
+                # exclude self-backrefs
                 exclude = [
                     field_name
-                    for field_name in list(set(class_.__mapper__.relationships.keys()))
-                    if field_name.endswith("_collection")
+                    for field_name, relationship in list(
+                        set(class_.__mapper__.relationships.items())
+                    )
+                    if relationship.backref is None
+                    and relationship.target.name == class_.__name__
                 ]
 
             attrs = {"Meta": Meta}
