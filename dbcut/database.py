@@ -276,27 +276,43 @@ class Database(object):
             attrs["__module__"] = module_basename
             schema_class_name = "%s_marshmallow_schema" % class_.__name__
 
-            for keyname in class_.__mapper__.relationships.keys():
+            relationship_keys = list(
+                set(class_.__mapper__.relationships.keys()) - set(Meta.exclude)
+            )
 
-                if not keyname.endswith("_collection"):
-                    relationship = class_.__mapper__.relationships[keyname]
-                    target_name = relationship.target.name
-                    if target_name in self.models:
-                        target_schema_class_name = (
-                            "%s_marshmallow_schema" % self.models[target_name].__name__
+            for keyname in relationship_keys:
+                relationship = class_.__mapper__.relationships[keyname]
+                target_name = relationship.target.name
+                if target_name in self.models:
+
+                    many = relationship.uselist
+
+                    exclude_keys = get_all_backref_keys(self.models[target_name])
+
+                    target_schema_class_name = (
+                        "%s_marshmallow_schema" % self.models[target_name].__name__
+                    )
+                    target_schema_class_fullname = "%s.%s" % (
+                        attrs["__module__"],
+                        target_schema_class_name,
+                    )
+
+                    if target_name == class_.__name__:
+                        exclude_keys.append(keyname)
+                        attrs[keyname] = fields.Nested(
+                            "self",
+                            name=keyname,
+                            many=many,
+                            exclude=exclude_keys,
+                            default=None,
                         )
-                        target_schema_class_fullname = "%s.%s" % (
-                            attrs["__module__"],
-                            target_schema_class_name,
+                    else:
+                        attrs[keyname] = fields.Nested(
+                            target_schema_class_fullname,
+                            name=keyname,
+                            many=many,
+                            exclude=exclude_keys,
                         )
-                        if target_name == class_.__name__:
-                            attrs[keyname] = fields.Nested(
-                                target_schema_class_fullname,
-                                exclude=(keyname,),
-                                default=None,
-                            )
-                        else:
-                            attrs[keyname] = fields.Nested(target_schema_class_fullname)
 
             schema_class = type(schema_class_name, (ModelSchema,), attrs)
             register_new_model(schema_class)
@@ -404,3 +420,11 @@ class _BoundDeclarativeMeta(DeclarativeMeta):
         if hasattr(bases[0], "_db"):
             bases[0]._db._model_class_registry[name] = self
             self._db = bases[0]._db
+
+
+def get_all_backref_keys(class_):
+    backrefs = []
+    for keyname, relationship in class_.__mapper__.relationships.items():
+        if relationship.backref is None:
+            backrefs.append(keyname)
+    return backrefs
