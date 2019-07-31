@@ -62,9 +62,10 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self):
+        count = self.count()
         dict_dump = {
             "count": self.count(),
-            "data": self.marshmallow_schema.dump(self, many=True).data,
+            "data": self.marshmallow_schema.dump(self, many=(count > 1)).data,
         }
         dump_json(dict_dump, self.cache_file)
 
@@ -72,7 +73,9 @@ class BaseQuery(Query):
         dict_dump = load_json(self.cache_file)
         return (
             dict_dump["count"],
-            self.marshmallow_schema.load(dict_dump["data"], many=True).data,
+            self.marshmallow_schema.load(
+                dict_dump["data"], many=(dict_dump["count"] > 1)
+            ).data,
         )
 
 
