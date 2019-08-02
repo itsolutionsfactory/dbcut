@@ -234,8 +234,9 @@ class Database(object):
                 )
                 for row in rows:
                     if row["table_name"] in table_names:
-                        table_names.pop(table_names.index(row["table_name"]))
-                        yield row["table_name"], row["table_rows"]
+                        if row["table_rows"] > 0:
+                            table_names.pop(table_names.index(row["table_name"]))
+                            yield row["table_name"], row["table_rows"]
 
             tables = [
                 Table(table_name, metadata, autoload=True) for table_name in table_names
