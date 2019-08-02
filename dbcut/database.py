@@ -144,11 +144,10 @@ class Database(object):
             bind = self.engine
         self.metadata.create_all(bind=bind, **kwargs)
 
-    def drop_all(self):
+    def drop_all(self, checkfirst=True):
         """Proxy for metadata.drop_all"""
         with self.no_fkc_session() as session:
-            for table in reversed(self.metadata.sorted_tables):
-                session.execute("DROP TABLE IF EXISTS %s" % table.name)
+            self.metadata.drop_all(session.bind, checkfirst=checkfirst)
 
     def delete_all(self, bind=None, **kwargs):
         """Delete all table content."""
