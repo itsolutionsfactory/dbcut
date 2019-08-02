@@ -34,19 +34,6 @@ def sync_schema(ctx):
         ctx.src_db.reflect(bind=ctx.dest_db.engine)
 
 
-def copy_query_objects(session, query):
-    count, objects = query.with_session(session).load_from_cache()
-    if count > 0:
-        for item in objects:
-            if isinstance(item, dict):
-                instance = query.with_session(session).model_class(**item)
-            else:
-                instance = item
-            session.add(instance)
-        session.commit()
-        session.expunge_all()
-
-
 def sync_data(ctx):
     queries = parse_queries(ctx)
     ctx.dest_db.start_profiler()
@@ -54,9 +41,16 @@ def sync_data(ctx):
 
     with ctx.dest_db.no_fkc_session() as session:
         for query in queries:
-            if not query.is_cached or ctx.force_refresh:
-                query.save_to_cache()
-            copy_query_objects(session, query)
+            if ctx.no_cache:
+                objects = query.objects(session)
+            else:
+                if not query.is_cached or ctx.force_refresh:
+                    query.save_to_cache()
+                objects = query.load_from_cache(session)
+            if objects:
+                session.add_all(objects)
+                session.commit()
+                session.expunge_all()
 
     ctx.dest_db.stop_profiler()
     ctx.src_db.stop_profiler()

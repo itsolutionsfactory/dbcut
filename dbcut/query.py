@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query, class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .serializer import dump_json, load_json, to_json
-from .utils import to_unicode
+from .utils import aslist, to_unicode
 
 
 class BaseQuery(Query):
@@ -62,21 +62,27 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self):
-        count = self.count()
-        dict_dump = {
-            "count": count,
-            "data": self.marshmallow_schema.dump(self, many=(count > 1)).data,
-        }
-        dump_json(dict_dump, self.cache_file)
+        data = self.marshmallow_schema.dump(self, many=True).data
+        dump_json(data, self.cache_file)
 
-    def load_from_cache(self):
-        dict_dump = load_json(self.cache_file)
-        return (
-            dict_dump["count"],
-            self.marshmallow_schema.load(
-                dict_dump["data"], many=(dict_dump["count"] > 1)
-            ).data,
-        )
+    def load_from_cache(self, session):
+        session = session or self.session
+        data = load_json(self.cache_file)
+        return self.with_session(session).marshmallow_load(data, many=True)
+
+    @aslist
+    def objects(self, session=None):
+        session = session or self.session
+        data = self.marshmallow_schema.dump(self, many=True).data
+        return self.with_session(session).marshmallow_load(data, many=True)
+
+    @aslist
+    def marshmallow_load(self, data, many=True):
+        for obj in self.marshmallow_schema.load(data, many=True).data:
+            if isinstance(obj, dict):
+                yield self.model_class(**obj)
+            else:
+                yield obj
 
 
 class QueryProperty(object):

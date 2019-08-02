@@ -28,6 +28,7 @@ class Context(object):
         self.dump_sql = False
         self.keep_db = False
         self.force_refresh = False
+        self.no_cache = False
 
     @cached_property
     def dest_db(self):

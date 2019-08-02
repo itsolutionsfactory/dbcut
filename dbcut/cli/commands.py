@@ -55,6 +55,13 @@ def load_configuration_file(ctx, param, value):
     help="Force refrech all cached queries",
 )
 @click.option(
+    "--no-cache",
+    "no_cache",
+    is_flag=True,
+    default=False,
+    help="Do not use any local cache path",
+)
+@click.option(
     "-y",
     "--force-yes",
     is_flag=True,
