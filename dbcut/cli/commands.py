@@ -48,6 +48,13 @@ def load_configuration_file(ctx, param, value):
     help="Preserve existing database",
 )
 @click.option(
+    "--force-refresh",
+    "force_refresh",
+    is_flag=True,
+    default=False,
+    help="Force refrech all cached queries",
+)
+@click.option(
     "-y",
     "--force-yes",
     is_flag=True,

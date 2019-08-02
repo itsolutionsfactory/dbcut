@@ -55,7 +55,7 @@ def sync_data(ctx):
 
     with ctx.dest_db.no_fkc_session() as session:
         for query in queries:
-            if not query.is_cached:
+            if not query.is_cached or ctx.force_refresh:
                 query.save_to_cache()
             copy_query_objects(session, query)
 
