@@ -323,7 +323,6 @@ class Database(object):
             schema_class = type(schema_class_name, (ModelSchema,), attrs)
             register_new_schema(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
-        __import__("pdb").set_trace()
 
     def _echo_statement(self, stm):
         text = to_unicode(stm)
