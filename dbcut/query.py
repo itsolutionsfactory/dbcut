@@ -64,7 +64,7 @@ class BaseQuery(Query):
     def save_to_cache(self):
         count = self.count()
         dict_dump = {
-            "count": self.count(),
+            "count": count,
             "data": self.marshmallow_schema.dump(self, many=(count > 1)).data,
         }
         dump_json(dict_dump, self.cache_file)
