@@ -26,6 +26,7 @@ class Context(object):
         self.verbose = False
         self.force_yes = False
         self.dump_sql = False
+        self.keep_db = False
 
     @cached_property
     def dest_db(self):
@@ -77,9 +78,9 @@ class Context(object):
             click.echo(message, **kwargs)
 
     def confirm(self, message, **kwargs):
+        kwargs.setdefault("abort", True)
         if not self.force_yes:
-            if not click.confirm(message, **kwargs):
-                raise click.Abort()
+            return click.confirm(message, **kwargs)
 
     def update_options(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -96,11 +97,7 @@ def make_pass_decorator(context_klass, ensure=True):
                 obj = ctx.ensure_object(context_klass)
             else:
                 obj = ctx.find_object(context_klass)
-            try:
-                return ctx.invoke(f, obj, *args[1:], **kwargs)
-            except (click.ClickException, click.Abort) as ex:
-                sys.stderr.write(u"\nError: %s\n" % ex)
-                sys.exit(1)
+            return ctx.invoke(f, obj, *args[1:], **kwargs)
 
         return update_wrapper(new_func, f)
 

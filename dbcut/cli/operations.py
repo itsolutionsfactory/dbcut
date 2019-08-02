@@ -24,10 +24,15 @@ def parse_queries(ctx):
 
 
 def sync_schema(ctx):
-    ctx.src_db.reflect()
-    ctx.dest_db.reflect(bind=ctx.src_db.engine)
-    ctx.dest_db.drop_all()
-    ctx.dest_db.create_all(checkfirst=True)
+    if not ctx.keep_db:
+        ctx.confirm("Remove all tables from %s" % ctx.dest_db.engine.url, default=False)
+        ctx.src_db.reflect()
+        ctx.dest_db.reflect(bind=ctx.src_db.engine)
+        ctx.dest_db.drop_all(checkfirst=True)
+        ctx.dest_db.create_all(checkfirst=True)
+    else:
+        ctx.dest_db.reflect()
+        ctx.src_db.reflect(bind=ctx.dest_db.engine)
 
 
 def copy_query_objects(session, query):
