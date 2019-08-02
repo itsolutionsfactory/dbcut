@@ -279,7 +279,7 @@ class Database(object):
 
             attrs = {"Meta": Meta}
             attrs["__module__"] = module_basename
-            schema_class_name = "%s_marshmallow_schema" % class_.__name__
+            schema_class_name = "%s_%s_marshmallow_schema" % (id(self), class_.__name__)
 
             relationship_keys = list(
                 set(class_.__mapper__.relationships.keys()) - set(Meta.exclude)
@@ -294,8 +294,9 @@ class Database(object):
 
                     exclude_keys = get_all_backref_keys(self.models[target_name])
 
-                    target_schema_class_name = (
-                        "%s_marshmallow_schema" % self.models[target_name].__name__
+                    target_schema_class_name = "%s_%s_marshmallow_schema" % (
+                        id(self),
+                        self.models[target_name].__name__,
                     )
                     target_schema_class_fullname = "%s.%s" % (
                         attrs["__module__"],
