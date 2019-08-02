@@ -13,13 +13,13 @@ from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
-from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import interfaces, mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 
 from .configuration import DEFAULT_CONFIG
-from .models import BaseModel, register_new_model
+from .marshmallow_schema import register_new_schema
+from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
 from .utils import (aslist, cached_property, generate_valid_index_name,
@@ -257,7 +257,7 @@ class Database(object):
 
     def _configure_serialization(self):
         module_basename = ".".join(
-            self.__class__.__module__.split(".")[:-1] + ["models"]
+            self.__class__.__module__.split(".")[:-1] + ["marshmallow_schema"]
         )
 
         for class_ in self.models.values():
@@ -321,8 +321,9 @@ class Database(object):
                         )
 
             schema_class = type(schema_class_name, (ModelSchema,), attrs)
-            register_new_model(schema_class)
+            register_new_schema(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
+        __import__("pdb").set_trace()
 
     def _echo_statement(self, stm):
         text = to_unicode(stm)
@@ -412,13 +413,6 @@ class EngineConnector(object):
                 self._engine = create_engine(info, **options)
                 self._engine._db = self._db
             return self._engine
-
-
-class BaseDeclarativeMeta(DeclarativeMeta):
-    def __init__(self, name, bases, d):
-        super(BaseDeclarativeMeta, self).__init__(name, bases, d)
-        if self._db is not None:
-            self._db._model_class_registry[name] = self
 
 
 def get_all_backref_keys(class_):
