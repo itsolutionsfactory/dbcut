@@ -12,9 +12,9 @@ from marshmallow_sqlalchemy import ModelSchema
 from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import mapper
+from sqlalchemy.orm import interfaces, mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 
@@ -119,7 +119,9 @@ class Database(object):
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            self.Model.prepare(bind, reflect=True)
+            self.Model.prepare(
+                bind, reflect=True, generate_relationship=_gen_relationship
+            )
 
             for table in self.tables.values():
                 for constraint in table.constraints:
@@ -427,3 +429,19 @@ def get_all_backref_keys(class_):
         if relationship.backref is None:
             backrefs.append(keyname)
     return backrefs
+
+
+def _gen_relationship(
+    base, direction, return_fn, attrname, local_cls, referred_cls, **kw
+):
+    if direction is interfaces.ONETOMANY:
+        kw["cascade"] = "all, delete-orphan"
+        kw["lazy"] = "subquery"
+    elif direction is interfaces.MANYTOONE:
+        kw["cascade"] = "all"
+        kw["lazy"] = "joined"
+        kw["innerjoin"] = True
+
+    return generate_relationship(
+        base, direction, return_fn, attrname, local_cls, referred_cls, **kw
+    )
