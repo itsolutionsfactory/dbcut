@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from mlalchemy import parse_query
-from sqlalchemy.orm import joinedload
 
 from ..utils import to_unicode
 
@@ -16,7 +15,7 @@ def parse_queries(ctx):
             parse_query(dict_query)
             .to_sqlalchemy(session, models)
             .distinct()
-            .options(joinedload("*"))
+            # .options(joinedload("*"))
             .options(cache_key=dict_query)
         )
         queries.append(query)
