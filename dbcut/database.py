@@ -23,7 +23,7 @@ from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
 from .utils import (aslist, cached_property, generate_valid_index_name,
-                    to_unicode)
+                    get_all_onetomany_keys, to_unicode)
 
 __all__ = ["Database"]
 
@@ -292,7 +292,7 @@ class Database(object):
 
                     many = relationship.uselist
 
-                    exclude_keys = _get_all_onetomany_keys(self.models[target_name])
+                    exclude_keys = get_all_onetomany_keys(self.models[target_name])
 
                     target_schema_class_name = "%s_%s_marshmallow_schema" % (
                         id(self),
@@ -412,14 +412,6 @@ class EngineConnector(object):
                 self._engine = create_engine(info, **options)
                 self._engine._db = self._db
             return self._engine
-
-
-def _get_all_onetomany_keys(class_):
-    onetomany_keys = []
-    for keyname, relationship in class_.__mapper__.relationships.items():
-        if relationship.direction is interfaces.ONETOMANY:
-            onetomany_keys.append(keyname)
-    return onetomany_keys
 
 
 def _gen_relationship(
