@@ -292,7 +292,7 @@ class Database(object):
 
                     many = relationship.uselist
 
-                    exclude_keys = get_all_backref_keys(self.models[target_name])
+                    exclude_keys = get_all_onetomany_keys(self.models[target_name])
 
                     target_schema_class_name = "%s_%s_marshmallow_schema" % (
                         id(self),
@@ -414,12 +414,12 @@ class EngineConnector(object):
             return self._engine
 
 
-def get_all_backref_keys(class_):
-    backrefs = []
+def get_all_onetomany_keys(class_):
+    onetomany_keys = []
     for keyname, relationship in class_.__mapper__.relationships.items():
-        if relationship.backref is None:
-            backrefs.append(keyname)
-    return backrefs
+        if relationship.direction is interfaces.ONETOMANY:
+            onetomany_keys.append(keyname)
+    return onetomany_keys
 
 
 def _gen_relationship(
