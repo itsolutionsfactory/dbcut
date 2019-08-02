@@ -1,4 +1,5 @@
 sqlalchemy
+sqlalchemy-easy-profile
 marshmallow-sqlalchemy
 click
 mysqlclient
