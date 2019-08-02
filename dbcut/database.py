@@ -426,10 +426,8 @@ def _gen_relationship(
     base, direction, return_fn, attrname, local_cls, referred_cls, **kw
 ):
     if direction is interfaces.ONETOMANY:
-        kw["cascade"] = "all, delete-orphan"
-        kw["lazy"] = "subquery"
+        kw["lazy"] = "noload"
     elif direction is interfaces.MANYTOONE:
-        kw["cascade"] = "all"
         kw["lazy"] = "joined"
         kw["innerjoin"] = True
 
