@@ -54,14 +54,17 @@ class Database(object):
         self._session_options.setdefault("autoflush", False)
         self._session_options.setdefault("autocommit", False)
         self._engine_lock = threading.Lock()
+        self._model_class_registry = {}
+        self.profiler = SessionProfiler(engine=self.engine)
+
         self.Model = automap_base(
-            cls=BaseModel, name="Model", metaclass=_BoundDeclarativeMeta
+            cls=type("BaseModel", (BaseModel,), {}),
+            name="Model",
+            metaclass=BaseDeclarativeMeta,
         )
         self.Model._db = self
-        self._model_class_registry = {}
-        self.Model._query = QueryProperty(self)
         self.Model._session = SessionProperty(self)
-        self.profiler = SessionProfiler(engine=self.engine)
+        self.Model._query = QueryProperty(self)
 
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
@@ -410,18 +413,11 @@ class EngineConnector(object):
             return self._engine
 
 
-class _BoundDeclarativeMeta(DeclarativeMeta):
-    def __new__(cls, name, bases, d):
-        d["__module__"] = ".".join(__name__.split(".")[:-1] + ["models"])
-        class_ = DeclarativeMeta.__new__(cls, name, bases, d)
-        register_new_model(class_)
-        return class_
-
+class BaseDeclarativeMeta(DeclarativeMeta):
     def __init__(self, name, bases, d):
-        DeclarativeMeta.__init__(self, name, bases, d)
-        if hasattr(bases[0], "_db"):
-            bases[0]._db._model_class_registry[name] = self
-            self._db = bases[0]._db
+        super(BaseDeclarativeMeta, self).__init__(name, bases, d)
+        if self._db is not None:
+            self._db._model_class_registry[name] = self
 
 
 def get_all_backref_keys(class_):
