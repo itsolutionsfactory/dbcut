@@ -35,12 +35,13 @@ def sync_schema(ctx):
 
 
 def sync_data(ctx):
-    queries = parse_queries(ctx)
-    ctx.dest_db.start_profiler()
-    ctx.src_db.start_profiler()
+
+    if ctx.profiler:
+        ctx.dest_db.start_profiler()
+        ctx.src_db.start_profiler()
 
     with ctx.dest_db.no_fkc_session() as session:
-        for query in queries:
+        for query in parse_queries(ctx):
             if ctx.no_cache:
                 objects = query.objects(session)
             else:
@@ -51,11 +52,11 @@ def sync_data(ctx):
                 session.add_all(objects)
                 session.commit()
                 session.expunge_all()
-
-    ctx.dest_db.stop_profiler()
-    ctx.src_db.stop_profiler()
-    ctx.dest_db.profiler_stats()
-    ctx.src_db.profiler_stats()
+    if ctx.profiler:
+        ctx.dest_db.stop_profiler()
+        ctx.src_db.stop_profiler()
+        ctx.dest_db.profiler_stats()
+        ctx.src_db.profiler_stats()
 
 
 def sync_db(ctx):

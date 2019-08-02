@@ -48,6 +48,9 @@ def load_configuration_file(ctx, param, value):
     help="Preserve existing database",
 )
 @click.option(
+    "--profiler", is_flag=True, default=False, help="Print database query counts."
+)
+@click.option(
     "--force-refresh",
     "force_refresh",
     is_flag=True,

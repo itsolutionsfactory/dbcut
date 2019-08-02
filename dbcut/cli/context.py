@@ -29,6 +29,7 @@ class Context(object):
         self.keep_db = False
         self.force_refresh = False
         self.no_cache = False
+        self.profiler = False
 
     @cached_property
     def dest_db(self):
