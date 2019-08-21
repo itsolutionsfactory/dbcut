@@ -320,6 +320,11 @@ class Database(object):
             register_new_schema(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
 
+        for class_ in self.models.values():
+            for key, field in class_.__marshmallow__._declared_fields.items():
+                if field:
+                    field.allow_none = True
+
     def _echo_statement(self, stm):
         text = to_unicode(stm)
         text = re.sub(r";", ";\n", text)
