@@ -73,7 +73,7 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self):
-        data = self.marshmallow_schema.dump(self, many=True).data
+        data = self.marshmallow_schema.dump(self, many=True)
         dump_json(data, self.cache_file)
 
     def load_from_cache(self, session):
@@ -84,12 +84,12 @@ class BaseQuery(Query):
     @aslist
     def objects(self, session=None):
         session = session or self.session
-        data = self.marshmallow_schema.dump(self, many=True).data
+        data = self.marshmallow_schema.dump(self, many=True)
         return self.with_session(session).marshmallow_load(data, many=True)
 
     @aslist
     def marshmallow_load(self, data, many=True):
-        for obj in self.marshmallow_schema.load(data, many=True).data:
+        for obj in self.marshmallow_schema.load(data, many=True):
             if isinstance(obj, dict):
                 yield self.model_class(**obj)
             else:
