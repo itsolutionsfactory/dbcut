@@ -7,10 +7,9 @@ import threading
 from contextlib import contextmanager
 
 from easy_profile import SessionProfiler, StreamReporter
-from marshmallow import fields
+from marshmallow import fields, post_dump
 from marshmallow_sqlalchemy import ModelSchema
-from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
-from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy import MetaData, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.orm import interfaces, mapper
@@ -317,7 +316,7 @@ class Database(object):
                             exclude=exclude_keys,
                         )
 
-            schema_class = type(schema_class_name, (ModelSchema,), attrs)
+            schema_class = type(schema_class_name, (BaseSchema,), attrs)
             register_new_schema(schema_class)
             setattr(class_, "__marshmallow__", schema_class)
 
@@ -367,6 +366,20 @@ class Database(object):
         if self.connector is not None:
             engine = self.engine
         return "<%s engine=%r>" % (self.__class__.__name__, engine)
+
+
+class BaseSchema(ModelSchema):
+    SKIP_VALUES = set([None])
+
+    @post_dump
+    def remove_skip_values(self, data, many, **kwargs):
+        return dict(
+            (
+                (key, value)
+                for key, value in data.items()
+                if value is not None or not isinstance(self.fields[key], fields.Nested)
+            )
+        )
 
 
 class EngineConnector(object):
