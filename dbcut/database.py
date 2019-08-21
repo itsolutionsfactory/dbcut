@@ -226,9 +226,10 @@ class Database(object):
 
     @aslist
     def count_all(self, estimate=True):
-        inspector = Inspector.from_engine(self.engine)
         metadata = MetaData(self.engine)
-        table_names = inspector.get_table_names()
+        metadata.reflect(bind=self.engine)
+        tables = dict(((t.name, t) for t in metadata.sorted_tables))
+        table_names = list(tables.keys())
         with self.engine.connect() as con:
             if estimate and self.dialect == "mysql":
                 rows = con.execute(
@@ -238,14 +239,10 @@ class Database(object):
                 for row in rows:
                     if row["table_name"] in table_names:
                         if row["table_rows"] > 0:
-                            table_names.pop(table_names.index(row["table_name"]))
+                            tables.pop(row["table_name"])
                             yield row["table_name"], row["table_rows"]
 
-            tables = [
-                Table(table_name, metadata, autoload=True) for table_name in table_names
-            ]
-
-            for table in tables:
+            for table in tables.values():
                 pks = sorted(
                     (c for c in table.c if c.primary_key), key=lambda c: c.name
                 )

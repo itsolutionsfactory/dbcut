@@ -84,4 +84,6 @@ def inspect_db(ctx):
         )
         for k in infos.keys()
     ]
-    return sorted(rows, key=lambda x: x[0]), headers
+    if ctx.sort:
+        rows = sorted(rows, key=lambda x: x[0])
+    return rows, headers

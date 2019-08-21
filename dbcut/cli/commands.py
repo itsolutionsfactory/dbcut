@@ -92,6 +92,7 @@ def main(ctx, **kwargs):
 @click.version_option()
 @click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
 @click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
+@click.option("--sort", is_flag=True, default=False, help="Sort tables by name.")
 @pass_context
 def inspect(ctx, **kwargs):
     """ Analyze all databases."""
