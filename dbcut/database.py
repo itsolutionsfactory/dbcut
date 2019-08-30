@@ -22,7 +22,7 @@ from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
 from .utils import (aslist, cached_property, generate_valid_index_name,
-                    get_all_onetomany_keys, to_unicode)
+                    to_unicode)
 
 __all__ = ["Database"]
 
@@ -122,7 +122,7 @@ class Database(object):
             if bind is None:
                 bind = self.engine
             self.Model.prepare(
-                bind, reflect=True, generate_relationship=_gen_relationship
+                bind, reflect=True, generate_relationship=self._gen_relationship
             )
 
             for table in self.tables.values():
@@ -252,6 +252,48 @@ class Database(object):
                     count_query = select([func.count()]).select_from(table)
                 yield table.name, con.execute(count_query).scalar()
 
+    def _gen_relationship(
+        self, base, direction, return_fn, attrname, local_cls, referred_cls, **kw
+    ):
+        if direction is interfaces.ONETOMANY:
+            kw["lazy"] = "subquery"
+        if direction is interfaces.MANYTOONE:
+            kw["lazy"] = "joined"
+            kw["innerjoin"] = True
+
+        return generate_relationship(
+            base, direction, return_fn, attrname, local_cls, referred_cls, **kw
+        )
+
+    def _get_referred_models(self, relationship):
+        already_seen_models = []
+
+        def walk_deeper(relationship):
+            src_model = relationship.parent.class_
+            target_model = self.models[relationship.target.name]
+            for deeper_relationship in target_model.__mapper__.relationships.values():
+                if deeper_relationship.target != src_model.__table__:
+                    yield deeper_relationship
+
+        def walk(relationship):
+            if relationship.target.name in self.models:
+                target_model = self.models[relationship.target.name]
+                if target_model not in already_seen_models:
+                    already_seen_models.append(target_model)
+                    for deeper_relationship in walk_deeper(relationship):
+                        walk(deeper_relationship)
+
+        walk(relationship)
+        return already_seen_models
+
+    def _get_remote_ref_keys(self, src_model, target_model):
+        remote_ref_keys = []
+        for keyname, relationship in src_model.__mapper__.relationships.items():
+            all_referred_models = list(self._get_referred_models(relationship))
+            if target_model in all_referred_models:
+                remote_ref_keys.append(keyname)
+        return remote_ref_keys
+
     def _configure_serialization(self):
         module_basename = ".".join(
             self.__class__.__module__.split(".")[:-1] + ["marshmallow_schema"]
@@ -289,7 +331,9 @@ class Database(object):
 
                     many = relationship.uselist
 
-                    exclude_keys = get_all_onetomany_keys(self.models[target_name])
+                    exclude_keys = self._get_remote_ref_keys(
+                        self.models[target_name], class_
+                    )
 
                     target_schema_class_name = "%s_%s_marshmallow_schema" % (
                         id(self),
@@ -384,7 +428,7 @@ class BaseSchema(ModelSchema):
     SKIP_VALUES = set([None])
 
     @post_dump
-    def remove_skip_values(self, data, many, **kwargs):
+    def remove_skip_values(self, data, **kwargs):
         return dict(
             (
                 (key, value)
@@ -434,17 +478,3 @@ class EngineConnector(object):
                 self._engine = create_engine(info, **options)
                 self._engine._db = self._db
             return self._engine
-
-
-def _gen_relationship(
-    base, direction, return_fn, attrname, local_cls, referred_cls, **kw
-):
-    if direction is interfaces.ONETOMANY:
-        kw["lazy"] = "noload"
-    elif direction is interfaces.MANYTOONE:
-        kw["lazy"] = "joined"
-        kw["innerjoin"] = True
-
-    return generate_relationship(
-        base, direction, return_fn, attrname, local_cls, referred_cls, **kw
-    )

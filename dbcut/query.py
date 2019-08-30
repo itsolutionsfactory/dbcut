@@ -2,11 +2,11 @@
 import hashlib
 import os
 
-from sqlalchemy.orm import Query, class_mapper, subqueryload
+from sqlalchemy.orm import Query, class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .serializer import dump_json, load_json, to_json
-from .utils import aslist, get_all_onetomany_keys, to_unicode
+from .utils import aslist, to_unicode
 
 
 class BaseQuery(Query):
@@ -27,7 +27,6 @@ class BaseQuery(Query):
     def options(self, *args, **kwargs):
         query = self
         cache_key = kwargs.get("cache_key", None)
-        load_backrefs = kwargs.get("load_backrefs", None)
         if cache_key:
             query = query._clone()
             if isinstance(cache_key, dict):
@@ -35,16 +34,6 @@ class BaseQuery(Query):
             query.cache_key = hashlib.sha1(
                 to_unicode(cache_key).encode("utf-8")
             ).hexdigest()
-
-        if load_backrefs:
-            query = query._clone()
-            backref_keys = get_all_onetomany_keys(self.model_class)
-            load = None
-            if backref_keys:
-                load = subqueryload(backref_keys[0])
-                for key in backref_keys[1:]:
-                    load = subqueryload(key)
-                query = query._options(False, load)
 
         if args:
             return query._options(False, *args)

@@ -15,7 +15,6 @@ def parse_queries(ctx):
             parse_query(dict_query)
             .to_sqlalchemy(session, models)
             .options(cache_key=dict_query)
-            .options(load_backrefs=True)
         )
         queries.append(query)
     return queries
