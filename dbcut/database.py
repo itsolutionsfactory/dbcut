@@ -225,6 +225,7 @@ class Database(object):
 
     @aslist
     def count_all(self, estimate=True):
+        estimate = False
         metadata = MetaData(self.engine)
         metadata.reflect(bind=self.engine)
         tables = dict(((t.name, t) for t in metadata.sorted_tables))
@@ -301,7 +302,7 @@ class Database(object):
 
                     if target_name == class_.__name__:
                         exclude_keys.append(keyname)
-                        attrs[keyname] = fields.Nested(
+                        attrs[keyname] = SmartNested(
                             "self",
                             name=keyname,
                             many=many,
@@ -309,7 +310,7 @@ class Database(object):
                             default=None,
                         )
                     else:
-                        attrs[keyname] = fields.Nested(
+                        attrs[keyname] = SmartNested(
                             target_schema_class_fullname,
                             name=keyname,
                             many=many,
@@ -371,6 +372,12 @@ class Database(object):
         if self.connector is not None:
             engine = self.engine
         return "<%s engine=%r>" % (self.__class__.__name__, engine)
+
+
+class SmartNested(fields.Nested):
+    def serialize(self, attr, obj, accessor=None):
+        if attr in obj.__dict__:
+            return super(SmartNested, self).serialize(attr, obj, accessor)
 
 
 class BaseSchema(ModelSchema):
