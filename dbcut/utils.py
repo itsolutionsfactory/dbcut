@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-from sqlalchemy.orm import interfaces
-
 
 def reraise(tp, value, tb=None):
     if value.__traceback__ is not tb:
@@ -104,11 +102,3 @@ def create_directory(dir_path):
     if not os.path.exists(absolute_dir_path):
         os.makedirs(absolute_dir_path)
     return absolute_dir_path
-
-
-def get_all_onetomany_keys(class_):
-    onetomany_keys = []
-    for keyname, relationship in class_.__mapper__.relationships.items():
-        if relationship.direction is interfaces.ONETOMANY:
-            onetomany_keys.append(keyname)
-    return onetomany_keys

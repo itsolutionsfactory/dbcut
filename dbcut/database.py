@@ -260,39 +260,9 @@ class Database(object):
         if direction is interfaces.MANYTOONE:
             kw["lazy"] = "joined"
             kw["innerjoin"] = True
-
         return generate_relationship(
             base, direction, return_fn, attrname, local_cls, referred_cls, **kw
         )
-
-    def _get_referred_models(self, relationship):
-        already_seen_models = []
-
-        def walk_deeper(relationship):
-            src_model = relationship.parent.class_
-            target_model = self.models[relationship.target.name]
-            for deeper_relationship in target_model.__mapper__.relationships.values():
-                if deeper_relationship.target != src_model.__table__:
-                    yield deeper_relationship
-
-        def walk(relationship):
-            if relationship.target.name in self.models:
-                target_model = self.models[relationship.target.name]
-                if target_model not in already_seen_models:
-                    already_seen_models.append(target_model)
-                    for deeper_relationship in walk_deeper(relationship):
-                        walk(deeper_relationship)
-
-        walk(relationship)
-        return already_seen_models
-
-    def _get_remote_ref_keys(self, src_model, target_model):
-        remote_ref_keys = []
-        for keyname, relationship in src_model.__mapper__.relationships.items():
-            all_referred_models = list(self._get_referred_models(relationship))
-            if target_model in all_referred_models:
-                remote_ref_keys.append(keyname)
-        return remote_ref_keys
 
     def _configure_serialization(self):
         module_basename = ".".join(
@@ -306,23 +276,11 @@ class Database(object):
                 transient = True
                 include_fk = True
 
-                # exclude self-backrefs
-                exclude = [
-                    field_name
-                    for field_name, relationship in list(
-                        set(class_.__mapper__.relationships.items())
-                    )
-                    if relationship.backref is None
-                    and relationship.target.name == class_.__name__
-                ]
-
             attrs = {"Meta": Meta}
             attrs["__module__"] = module_basename
             schema_class_name = "%s_%s_marshmallow_schema" % (id(self), class_.__name__)
 
-            relationship_keys = list(
-                set(class_.__mapper__.relationships.keys()) - set(Meta.exclude)
-            )
+            relationship_keys = class_.__mapper__.relationships.keys()
 
             for keyname in relationship_keys:
                 relationship = class_.__mapper__.relationships[keyname]
@@ -330,10 +288,6 @@ class Database(object):
                 if target_name in self.models:
 
                     many = relationship.uselist
-
-                    exclude_keys = self._get_remote_ref_keys(
-                        self.models[target_name], class_
-                    )
 
                     target_schema_class_name = "%s_%s_marshmallow_schema" % (
                         id(self),
@@ -343,10 +297,11 @@ class Database(object):
                         attrs["__module__"],
                         target_schema_class_name,
                     )
+                    exclude_keys = []
 
                     if target_name == class_.__name__:
-                        exclude_keys.append(keyname)
-                        attrs[keyname] = SmartNested(
+                        exclude_keys = [keyname]
+                        attrs[keyname] = fields.Nested(
                             "self",
                             name=keyname,
                             many=many,
@@ -354,7 +309,7 @@ class Database(object):
                             default=None,
                         )
                     else:
-                        attrs[keyname] = SmartNested(
+                        attrs[keyname] = fields.Nested(
                             target_schema_class_fullname,
                             name=keyname,
                             many=many,
@@ -416,12 +371,6 @@ class Database(object):
         if self.connector is not None:
             engine = self.engine
         return "<%s engine=%r>" % (self.__class__.__name__, engine)
-
-
-class SmartNested(fields.Nested):
-    def serialize(self, attr, obj, accessor=None):
-        if attr in obj.__dict__:
-            return super(SmartNested, self).serialize(attr, obj, accessor)
 
 
 class BaseSchema(ModelSchema):

@@ -2,7 +2,8 @@
 import hashlib
 import os
 
-from sqlalchemy.orm import Query, class_mapper
+from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
+                            noload, subqueryload)
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .serializer import dump_json, load_json, to_json
@@ -27,6 +28,7 @@ class BaseQuery(Query):
     def options(self, *args, **kwargs):
         query = self
         cache_key = kwargs.get("cache_key", None)
+        prevent_loop = kwargs.get("prevent_loop", None)
         if cache_key:
             query = query._clone()
             if isinstance(cache_key, dict):
@@ -34,6 +36,9 @@ class BaseQuery(Query):
             query.cache_key = hashlib.sha1(
                 to_unicode(cache_key).encode("utf-8")
             ).hexdigest()
+
+        if prevent_loop:
+            query = self._prevent_loop_loading()
 
         if args:
             return query._options(False, *args)
@@ -83,6 +88,32 @@ class BaseQuery(Query):
                 yield self.model_class(**obj)
             else:
                 yield obj
+
+    def _prevent_loop_loading(self):
+        all_models = self.session.db.models
+        already_seen_models = []
+        relations_to_noload = []
+
+        def walk_tree_and_unload(model, path):
+            if model not in already_seen_models:
+                already_seen_models.append(model)
+                for relationship in model.__mapper__.relationships.values():
+                    next_path = path + [relationship.key]
+                    full_path = ".".join(next_path)
+                    if relationship.target.name in all_models:
+                        target_model = all_models[relationship.target.name]
+                        if target_model in already_seen_models:
+                            relations_to_noload.append((relationship, full_path))
+                        else:
+                            walk_tree_and_unload(target_model, next_path)
+
+        walk_tree_and_unload(self.model_class, [])
+        query = self._clone()
+
+        for relationship, path in relations_to_noload:
+            query = query.options(noload(path))
+
+        return query
 
 
 class QueryProperty(object):
