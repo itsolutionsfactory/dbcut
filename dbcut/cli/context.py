@@ -26,7 +26,7 @@ class Context(object):
         self.verbose = False
         self.force_yes = False
         self.dump_sql = False
-        self.keep_db = False
+        self.drop_db = False
         self.force_refresh = False
         self.no_cache = False
         self.profiler = False

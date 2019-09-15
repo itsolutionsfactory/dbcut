@@ -40,12 +40,12 @@ def load_configuration_file(ctx, param, value):
     "--dump-sql", is_flag=True, default=False, help="Dumps all sql insert queries."
 )
 @click.option(
-    "-k",
-    "--keep-db",
-    "keep_db",
+    "-d",
+    "--drop-db",
+    "drop_db",
     is_flag=True,
     default=False,
-    help="Preserve existing database",
+    help="Drop existing database first",
 )
 @click.option(
     "--profiler", is_flag=True, default=False, help="Print database query counts."
