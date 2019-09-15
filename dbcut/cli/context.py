@@ -3,7 +3,6 @@ import logging
 import re
 import shutil
 import sys
-import textwrap
 import time
 from functools import update_wrapper
 
@@ -30,6 +29,7 @@ class Context(object):
         self.dump_sql = False
         self.drop_db = False
         self.force_refresh = False
+        self.last_only = False
         self.no_cache = False
         self.profiler = False
         self.is_tty = sys.stdout.isatty()

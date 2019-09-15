@@ -12,7 +12,12 @@ from ..utils import to_unicode, tree_pretty_print
 def parse_queries(ctx):
     queries = []
     session = ctx.src_db.session
-    for dict_query in ctx.config["queries"]:
+    if ctx.last_only:
+        raw_queries = [ctx.config["queries"][-1]]
+    else:
+        raw_queries = ctx.config["queries"]
+
+    for dict_query in raw_queries:
         queries.append(parse_query(dict_query.copy(), session, ctx.config))
     return queries
 

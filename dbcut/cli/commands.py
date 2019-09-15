@@ -71,6 +71,9 @@ def load_configuration_file(ctx, param, value):
     default=False,
     help="Never prompts for user intervention",
 )
+@click.option(
+    "-l", "--last-only", is_flag=True, default=False, help="Execute only the last query"
+)
 @click.version_option()
 @click.option("--verbose", is_flag=True, default=False, help="Enables verbose output.")
 @click.option("--debug", is_flag=True, default=False, help="Enables debug mode.")
