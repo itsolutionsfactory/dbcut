@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
+import shutil
 import sys
+import textwrap
 import time
 from functools import update_wrapper
 
@@ -23,13 +25,16 @@ red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)  # noqa
 class Context(object):
     def __init__(self):
         self.debug = False
-        self.verbose = False
+        self.verbose = True
         self.force_yes = False
         self.dump_sql = False
         self.drop_db = False
         self.force_refresh = False
         self.no_cache = False
         self.profiler = False
+        self.is_tty = sys.stdout.isatty()
+        self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
+        self.configure_log()
 
     @cached_property
     def dest_db(self):
@@ -78,6 +83,10 @@ class Context(object):
             if self.debug:
                 message = message.replace("\r", "")
                 kwargs["nl"] = True
+            if self.is_tty:
+                message = "\n".join(
+                    msg[: self.tty_columns] for msg in message.split("\n")
+                )
             click.echo(message, **kwargs)
 
     def confirm(self, message, **kwargs):
@@ -89,6 +98,7 @@ class Context(object):
         self.__dict__.update(kwargs)
         if self.debug and not self.verbose:
             self.verbose = True
+        self.configure_log()
 
 
 def make_pass_decorator(context_klass, ensure=True):
