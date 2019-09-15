@@ -1,5 +1,36 @@
 # -*- coding: utf-8 -*-
+# coding: utf8
+import contextlib
 import os
+import sys
+
+from io import StringIO
+from pptree import print_tree
+
+
+@contextlib.contextmanager
+def redirect_stdout():
+    stream = StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = stream
+    try:
+        yield stream
+    finally:
+        sys.stdout = old_stdout
+
+
+def tree_pretty_print(tree):
+    with redirect_stdout() as stream:
+        print_tree(tree)
+
+    def flatten(node):
+        yield node.name
+        for child in node.children:
+            yield from flatten(child)  # noqa
+
+    flat = list(flatten(tree))
+
+    return stream.getvalue() + "\n\n" + "Include %s tables\n" % len(flat)
 
 
 def reraise(tp, value, tb=None):
