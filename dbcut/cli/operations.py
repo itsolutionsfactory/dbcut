@@ -5,19 +5,10 @@ from ..utils import to_unicode
 
 
 def parse_queries(ctx):
-    # try a simple YAML-based query first
     queries = []
     session = ctx.src_db.session
-    models = ctx.src_db.models
     for dict_query in ctx.config["queries"]:
-        dict_query.setdefault("limit", ctx.config["default_limit"])
-        query = (
-            parse_query(dict_query)
-            .to_sqlalchemy(session, models)
-            .options(cache_key=dict_query)
-            .options(prevent_loop=True)
-        )
-        queries.append(query)
+        queries.append(parse_query(dict_query.copy(), session, ctx.config))
     return queries
 
 

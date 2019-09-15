@@ -1,18 +1,71 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import os
+from collections import OrderedDict
 
+from mlalchemy import parse_query as mlalchemy_parse_query
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
                             noload, subqueryload)
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, to_unicode
+def parse_query(qd, session, config):
+    """Parses the given query dictionary to produce a BaseQuery object.
+    """
+    defaults = {
+        "limit": config["default_limit"],
+        "backref_depth": config["default_backref_depth"],
+        "join_depth": config["default_join_depth"],
+        "ignore_tables": [],
+    }
+    qd.setdefault("limit", defaults["limit"])
+
+    full_qd = merge_dicts(defaults, qd)
+    backref_depth = full_qd.get("backref_depth")
+    join_depth = full_qd.get("join_depth")
+    ignore_tables = full_qd.get("ignore_tables")
+
+    if qd["limit"] in (None, False):
+        qd.pop("limit")
+
+    if isinstance(ignore_tables, str):
+        ignore_tables = [ignore_tables]
+
+    full_qd["ignore_tables"] = list(set(ignore_tables + config["global_ignore_tables"]))
+    query = mlalchemy_parse_query(qd).to_sqlalchemy(session, session.bind._db.models)
+
+    order_by = full_qd.pop("order-by", None)
+    if order_by:
+        full_qd["order_by"] = order_by
+
+    qd_key_sort = [
+        "from",
+        "where",
+        "order_by",
+        "limit",
+        "backref_depth",
+        "join_depth",
+        "ignore_tables",
+    ]
+
+    query.query_dict = OrderedDict(
+        sorted(full_qd.items(), key=lambda x: qd_key_sort.index(x[0]))
+    )
+    query = query.with_loaded_relations(
+        join_depth, backref_depth, full_qd["ignore_tables"]
+    )
+
+    return query
 
 
 class BaseQuery(Query):
 
-    cache_key = None
+    query_dict = None
+    relations_tree = None
+
+    def __init__(self, *args, **kwargs):
+        super(BaseQuery, self).__init__(*args, **kwargs)
 
     class QueryStr(str):
         # Useful for debug
@@ -25,25 +78,16 @@ class BaseQuery(Query):
         """
         return self.QueryStr(render_query(self))
 
-    def options(self, *args, **kwargs):
-        query = self
-        cache_key = kwargs.get("cache_key", None)
-        prevent_loop = kwargs.get("prevent_loop", None)
-        if cache_key:
-            query = query._clone()
-            if isinstance(cache_key, dict):
-                cache_key = to_json(cache_key)
-            query.cache_key = hashlib.sha1(
-                to_unicode(cache_key).encode("utf-8")
-            ).hexdigest()
-
-        if prevent_loop:
-            query = self._prevent_loop_loading()
-
-        if args:
-            return query._options(False, *args)
+    @property
+    def cache_key(self):
+        if self.query_dict is None:
+            raise RuntimeError("Missing 'query_dict'")
+        if isinstance(self.query_dict, dict):
+            key = to_json(dict(self.query_dict))
         else:
-            return query
+            key = self.query_dict
+        return hashlib.sha1(to_unicode(key).encode("utf-8")).hexdigest()
+
 
     @property
     def cache_file(self):

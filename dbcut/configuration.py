@@ -19,7 +19,10 @@ DEFAULT_CONFIG = {
     "log_level": 3,
     "log_file": ":stderr:",
     "log_format": "[%(levelname)8s] [%(asctime)s] [%(name)s]: %(message)s",
-    "default_limit": 1000,
+    "default_limit": 10,
+    "default_backref_depth": 0,
+    "default_join_depth": 1,
+    "global_ignore_tables": [],
 }
 
 
