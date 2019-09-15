@@ -4,12 +4,16 @@ import os
 from collections import OrderedDict
 
 from mlalchemy import parse_query as mlalchemy_parse_query
+from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
-                            noload, subqueryload)
+                            selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
+from sqlalchemy.orm.session import make_transient
 
-from .serializer import dump_json, load_json, to_json
-from .utils import aslist, to_unicode
+from .serializer import to_json
+from .utils import merge_dicts, to_unicode
+
+
 def parse_query(qd, session, config):
     """Parses the given query dictionary to produce a BaseQuery object.
     """
@@ -88,17 +92,22 @@ class BaseQuery(Query):
             key = self.query_dict
         return hashlib.sha1(to_unicode(key).encode("utf-8")).hexdigest()
 
+    @property
+    def cache_basename(self):
+        basename = "{}-{}".format(self.model_class.__name__, self.cache_key)
+        return os.path.join(self.session.db.cache_dir, basename)
 
     @property
     def cache_file(self):
-        if self.cache_key is None:
-            raise RuntimeError("Missing 'cache_key'")
-        filename = "%s-%s.json" % (self.model_class.__name__, self.cache_key)
-        return os.path.join(self.session.db.cache_dir, filename)
+        return "{}.cache".format(self.cache_basename)
+
+    @property
+    def count_cache_file(self):
+        return "{}.count".format(self.cache_basename)
 
     @property
     def is_cached(self):
-        if self.cache_key is not None:
+        if self.query_dict is not None:
             return os.path.isfile(self.cache_file)
         return False
 
@@ -110,24 +119,28 @@ class BaseQuery(Query):
     def marshmallow_schema(self):
         return self.model_class.__marshmallow__()
 
-    def save_to_cache(self):
-        data = self.marshmallow_schema.dump(self, many=True)
-        dump_json(data, self.cache_file)
+    def save_to_cache(self, objects=None):
+        if objects is None:
+            objects = list(self.objects())
+        content = sa_serializer.dumps(objects)
+        with open(self.cache_file, "wb") as fd:
+            fd.write(content)
 
-    def load_from_cache(self, session):
+    def load_from_cache(self, session=None):
         session = session or self.session
-        data = load_json(self.cache_file)
-        return self.with_session(session).marshmallow_load(data, many=True)
+        metadata = session.db.metadata
+        with open(self.cache_file, "rb") as fd:
+            return sa_serializer.loads(fd.read(), metadata, session)
 
-    @aslist
-    def objects(self, session=None):
-        session = session or self.session
-        data = self.marshmallow_schema.dump(self, many=True)
-        return self.with_session(session).marshmallow_load(data, many=True)
+    def objects(self):
+        for obj in self:
+            for instance in self.session:
+                make_transient(instance)
+            yield obj
 
-    @aslist
     def marshmallow_load(self, data, many=True):
-        for obj in self.marshmallow_schema.load(data, many=True):
+        for item in data:
+            obj = self.marshmallow_schema.load(item, many=False)
             if isinstance(obj, dict):
                 yield self.model_class(**obj)
             else:
