@@ -255,11 +255,8 @@ class Database(object):
     def _gen_relationship(
         self, base, direction, return_fn, attrname, local_cls, referred_cls, **kw
     ):
-        if direction is interfaces.ONETOMANY:
-            kw["lazy"] = "subquery"
-        if direction is interfaces.MANYTOONE:
-            kw["lazy"] = "joined"
-            kw["innerjoin"] = True
+        kw["lazy"] = "noload"
+        kw["cascade"] = "all"
         return generate_relationship(
             base, direction, return_fn, attrname, local_cls, referred_cls, **kw
         )
