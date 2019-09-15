@@ -7,5 +7,6 @@ psycopg2
 mlalchemy
 tabulate
 sqlparse
+tqdm
 pptree
 ujson
