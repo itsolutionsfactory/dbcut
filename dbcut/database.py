@@ -225,7 +225,6 @@ class Database(object):
 
     @aslist
     def count_all(self, estimate=True):
-        estimate = False
         metadata = MetaData(self.engine)
         metadata.reflect(bind=self.engine)
         tables = dict(((t.name, t) for t in metadata.sorted_tables))
