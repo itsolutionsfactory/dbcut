@@ -32,6 +32,7 @@ class Context(object):
         self.last_only = False
         self.no_cache = False
         self.profiler = False
+        self.interactive = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
         self.configure_log()
@@ -87,6 +88,7 @@ class Context(object):
                 message = "\n".join(
                     msg[: self.tty_columns] for msg in message.split("\n")
                 )
+
             click.echo(message, **kwargs)
 
     def confirm(self, message, **kwargs):
@@ -94,10 +96,16 @@ class Context(object):
         if not self.force_yes:
             return click.confirm(message, **kwargs)
 
+    def continue_operation(self, message, **kwargs):
+        kwargs.setdefault("abort", False)
+        return click.confirm(message, **kwargs)
+
     def update_options(self, **kwargs):
         self.__dict__.update(kwargs)
         if self.debug and not self.verbose:
             self.verbose = True
+        if self.interactive:
+            self.force_yes = False
         self.configure_log()
 
 

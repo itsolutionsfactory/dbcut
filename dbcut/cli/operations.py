@@ -82,22 +82,30 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
     ctx.log("")
     ctx.log(tree_pretty_print(query.relations_tree))
     ctx.log(" ---> Cache key : %s" % query.cache_key)
-    if using_cache:
-        ctx.log(" ---> Using cache ({} elements)".format(count))
-    else:
-        ctx.log(" ---> Executing query")
 
-    next(objects_generator)
+    continue_operation = True
+    if ctx.interactive:
+        continue_operation = ctx.continue_operation("Continue ?", default=False)
 
-    if count:
-        ctx.log(" ---> Fetching objects")
-        for obj in objects_generator:
-            session.add(obj)
-        rows_count = len(list(session))
-        ctx.log(" ---> Inserting {} rows".format(rows_count))
-        session.commit()
+    if continue_operation:
+        if using_cache:
+            ctx.log(" ---> Using cache ({} elements)".format(count))
+        else:
+            ctx.log(" ---> Executing query")
+
+        next(objects_generator)
+
+        if count:
+            ctx.log(" ---> Fetching objects")
+            for obj in objects_generator:
+                session.add(obj)
+            rows_count = len(list(session))
+            ctx.log(" ---> Inserting {} rows".format(rows_count))
+            session.commit()
+        else:
+            ctx.log(" ---> Nothing to do")
     else:
-        ctx.log(" ---> Nothing to do")
+        ctx.log(" ---> Skipped")
 
 
 def sync_data(ctx):
