@@ -6,7 +6,7 @@ from collections import OrderedDict
 from mlalchemy import parse_query as mlalchemy_parse_query
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
-                            selectinload)
+                            subqueryload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient
 
@@ -236,7 +236,7 @@ class BaseQuery(Query):
 
         for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
-                query = query.options(selectinload(path))
+                query = query.options(subqueryload(path))
             elif relationship.direction is interfaces.MANYTOONE:
                 query = query.options(joinedload(path))
 
