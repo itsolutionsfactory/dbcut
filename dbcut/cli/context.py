@@ -88,8 +88,8 @@ class Context(object):
                 message = "\n".join(
                     msg[: self.tty_columns] for msg in message.split("\n")
                 )
-
-            click.echo(message, **kwargs)
+            if not self.dump_sql:
+                click.echo(message, **kwargs)
 
     def confirm(self, message, **kwargs):
         kwargs.setdefault("abort", True)
@@ -97,6 +97,8 @@ class Context(object):
             return click.confirm(message, **kwargs)
 
     def continue_operation(self, message, **kwargs):
+        if not self.interactive:
+            return True
         kwargs.setdefault("abort", False)
         return click.confirm(message, **kwargs)
 
@@ -106,6 +108,8 @@ class Context(object):
             self.verbose = True
         if self.interactive:
             self.force_yes = False
+        if self.dump_sql:
+            self.interactive = False
         self.configure_log()
 
 
