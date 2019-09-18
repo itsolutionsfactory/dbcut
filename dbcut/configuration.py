@@ -22,7 +22,7 @@ DEFAULT_CONFIG = {
     "default_limit": 10,
     "default_backref_depth": 0,
     "default_join_depth": 1,
-    "global_ignore_tables": [],
+    "global_exclude": [],
 }
 
 

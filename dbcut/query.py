@@ -10,7 +10,7 @@ from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient
 
-from .serializer import to_json
+from .serializer import dump_json, to_json
 from .utils import merge_dicts, to_unicode
 
 
@@ -21,22 +21,24 @@ def parse_query(qd, session, config):
         "limit": config["default_limit"],
         "backref_depth": config["default_backref_depth"],
         "join_depth": config["default_join_depth"],
-        "ignore_tables": [],
+        "exclude": [],
+        "include": [],
     }
     qd.setdefault("limit", defaults["limit"])
 
     full_qd = merge_dicts(defaults, qd)
-    backref_depth = full_qd.get("backref_depth")
-    join_depth = full_qd.get("join_depth")
-    ignore_tables = full_qd.get("ignore_tables")
 
     if qd["limit"] in (None, False):
         qd.pop("limit")
 
-    if isinstance(ignore_tables, str):
-        ignore_tables = [ignore_tables]
+    if isinstance(full_qd["exclude"], str):
+        full_qd["exclude"] = [full_qd["exclude"]]
 
-    full_qd["ignore_tables"] = list(set(ignore_tables + config["global_ignore_tables"]))
+    full_qd["exclude"] = list(set(full_qd["exclude"] + config["global_exclude"]))
+
+    if isinstance(full_qd["include"], str):
+        full_qd["include"] = [full_qd["include"]]
+
     query = mlalchemy_parse_query(qd).to_sqlalchemy(session, session.bind._db.models)
 
     order_by = full_qd.pop("order-by", None)
@@ -50,14 +52,25 @@ def parse_query(qd, session, config):
         "limit",
         "backref_depth",
         "join_depth",
-        "ignore_tables",
+        "exclude",
+        "include",
     ]
+
+    if full_qd["include"]:
+        full_qd["join_depth"] = full_qd["backref_depth"] = None
+    else:
+        full_qd["join_depth"] = full_qd["join_depth"] or 0
+        full_qd["backref_depth"] = full_qd["backref_depth"] or 0
 
     query.query_dict = OrderedDict(
         sorted(full_qd.items(), key=lambda x: qd_key_sort.index(x[0]))
     )
+
     query = query.with_loaded_relations(
-        join_depth, backref_depth, full_qd["ignore_tables"]
+        full_qd["join_depth"],
+        full_qd["backref_depth"],
+        full_qd["exclude"],
+        full_qd["include"],
     )
 
     return query
@@ -87,7 +100,7 @@ class BaseQuery(Query):
         if self.query_dict is None:
             raise RuntimeError("Missing 'query_dict'")
         if isinstance(self.query_dict, dict):
-            key = to_json(dict(self.query_dict))
+            key = to_json(sorted([(k, v) for k, v in self.query_dict.items()]))
         else:
             key = self.query_dict
         return hashlib.sha1(to_unicode(key).encode("utf-8")).hexdigest()
@@ -156,13 +169,16 @@ class BaseQuery(Query):
             else:
                 yield obj
 
-    def with_loaded_relations(self, max_join_depth, max_backref_depth, ignore_tables):
+    def with_loaded_relations(
+        self, max_join_depth, max_backref_depth, exclude, include
+    ):
         all_models = self.session.db.models
         already_seen_models = [
             all_models.get(table_name)
-            for table_name in ignore_tables
+            for table_name in exclude
             if table_name in all_models
         ]
+        already_seen_models.append(self.model_class.__name__)
         relations_to_load = []
 
         def breadth_first_walk_and_unload_generator(
@@ -172,64 +188,94 @@ class BaseQuery(Query):
             join_depth=max_join_depth,
             backref_depth=max_backref_depth,
         ):
-            already_seen_models.append(model)
+            next_models = []
             for relationship in get_relationships(model):
                 next_path = path + [relationship.key]
                 full_path = ".".join(next_path)
-                next_models = []
                 if relationship.target.name in all_models:
                     target_model = all_models[relationship.target.name]
                     if target_model not in already_seen_models:
                         if (
                             relationship.direction is interfaces.ONETOMANY
-                            and backref_depth > 0
-                        ):
-                            relations_to_load.append((relationship, full_path))
-                            next_models.append(
-                                (target_model, next_path, relationship.direction)
-                            )
-                        elif (
+                            and (backref_depth is None or backref_depth > 0)
+                        ) or (
                             relationship.direction is interfaces.MANYTOONE
-                            and join_depth > 0
+                            and (join_depth is None or join_depth > 0)
                         ):
                             relations_to_load.append((relationship, full_path))
-                            next_models.append(
-                                (target_model, next_path, relationship.direction)
-                            )
+                            next_models.append((target_model, next_path, relationship))
+                        already_seen_models.append(target_model)
+            join_depth = (
+                max(0, join_depth - 1) if join_depth is not None else join_depth
+            )
+            backref_depth = (
+                max(0, backref_depth - 1)
+                if backref_depth is not None
+                else backref_depth
+            )
+            nodes = []
+            for next_model, next_path, relationship in next_models:
+                if relationship.direction is interfaces.ONETOMANY:
+                    node_name = "─ⁿ{}".format(next_model.__name__)
+                else:
+                    node_name = "─¹{}".format(next_model.__name__)
+                next_node = RelationNode(node_name, root_node, relationship)
 
-                nodes = []
-                for next_model, next_path, direction in next_models:
-                    next_node = RelationNode(next_model.__name__, root_node)
-                    if direction is interfaces.ONETOMANY:
-                        gen = breadth_first_walk_and_unload_generator(
-                            next_node,
-                            next_model,
-                            next_path,
-                            join_depth,
-                            backref_depth - 1,
-                        )
-                    else:
-                        gen = breadth_first_walk_and_unload_generator(
-                            next_node,
-                            next_model,
-                            next_path,
-                            join_depth - 1,
-                            backref_depth,
-                        )
-                    nodes.append({"generator": gen, "stop_iteration": False})
+                gen = breadth_first_walk_and_unload_generator(
+                    next_node, next_model, next_path, join_depth, backref_depth
+                )
+                nodes.append({"generator": gen, "stop_iteration": False})
 
-                yield
+            yield
 
-                while not all(node["stop_iteration"] for node in nodes):
-                    for node in nodes:
-                        if not node["stop_iteration"]:
-                            try:
-                                yield next(node["generator"])
-                            except StopIteration:
-                                node["stop_iteration"] = True
+            while not all(node["stop_iteration"] for node in nodes):
+                for node in nodes:
+                    if not node["stop_iteration"]:
+                        try:
+                            yield next(node["generator"])
+                        except StopIteration:
+                            node["stop_iteration"] = True
 
         root_node = RelationNode(self.model_class.__name__)
         list(breadth_first_walk_and_unload_generator(root_node, self.model_class, []))
+
+        if include:
+
+            def get_direct_path(target_name):
+                direct_paths = []
+                leaf_relationship = None
+                relations = sorted(relations_to_load, key=lambda x: x[1])
+                for relationship, path in relations:
+                    if relationship.target.name == target_name:
+                        leaf_relationship = (relationship, path)
+                        break
+                if leaf_relationship is None:
+                    return []
+                direct_paths = [leaf_relationship]
+                other_relations = sorted(
+                    list(set(relations) - set([leaf_relationship])), key=lambda x: x[1]
+                )
+                for relationship, path in other_relations:
+                    if path in leaf_relationship[1]:
+                        direct_paths.append(tuple([relationship, path]))
+
+                return direct_paths
+
+            def cut_relations_tree(relations_to_keep, tree):
+                if tree.relationship in relations_to_keep or tree.relationship is None:
+                    children = []
+                    for child in tree.children:
+                        child_tree = cut_relations_tree(relations_to_keep, child)
+                        if child_tree is not None:
+                            children.append(child_tree)
+                    tree.children = children
+                    return tree
+
+            new_relations_to_load = []
+            for target_name in include:
+                new_relations_to_load.extend(get_direct_path(target_name))
+            relations_to_load = new_relations_to_load
+            cut_relations_tree([r for r, p in relations_to_load], root_node)
 
         query = self._clone()
         query.relations_tree = root_node
@@ -275,9 +321,10 @@ def render_query(query, reindent=True):
 
 
 class RelationNode:
-    def __init__(self, name, parent=None):
+    def __init__(self, name, parent=None, relationship=None):
         self.name = name
         self.parent = parent
+        self.relationship = relationship
         self.children = []
 
         if parent:
