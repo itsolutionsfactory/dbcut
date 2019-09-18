@@ -27,6 +27,7 @@ class Context(object):
         self.verbose = True
         self.force_yes = False
         self.dump_sql = False
+        self.export_json = False
         self.drop_db = False
         self.force_refresh = False
         self.last_only = False
@@ -35,7 +36,6 @@ class Context(object):
         self.interactive = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
-        self.configure_log()
 
     @cached_property
     def dest_db(self):

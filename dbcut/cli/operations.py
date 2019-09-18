@@ -97,11 +97,17 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 
         if count:
             ctx.log(" ---> Fetching objects")
+            objects_to_serialize = []
             for obj in objects_generator:
+                if ctx.export_json:
+                    objects_to_serialize.append(obj)
                 session.add(obj)
             rows_count = len(list(session))
             ctx.log(" ---> Inserting {} rows".format(rows_count))
             session.commit()
+            if ctx.export_json:
+                ctx.log(" ---> Exporting json to {}".format(query.json_file))
+                query.export_to_json(objects_to_serialize)
         else:
             ctx.log(" ---> Nothing to do")
     else:

@@ -39,6 +39,7 @@ def load_configuration_file(ctx, param, value):
 @click.option(
     "--dump-sql", is_flag=True, default=False, help="Dumps all sql insert queries."
 )
+@click.option("--export-json", is_flag=True, default=False, help="Export data to json.")
 @click.option(
     "-d",
     "--drop-db",
@@ -88,7 +89,6 @@ def load_configuration_file(ctx, param, value):
 def main(ctx, **kwargs):
     """Extract a lightweight subset of your production DB for development and testing purpose."""
     ctx.update_options(**kwargs)
-    ctx.configure_log()
     sync_db(ctx)
 
 

@@ -102,6 +102,10 @@ class BaseQuery(Query):
         return "{}.cache".format(self.cache_basename)
 
     @property
+    def json_file(self):
+        return "{}.json".format(self.cache_basename)
+
+    @property
     def count_cache_file(self):
         return "{}.count".format(self.cache_basename)
 
@@ -125,6 +129,12 @@ class BaseQuery(Query):
         content = sa_serializer.dumps(objects)
         with open(self.cache_file, "wb") as fd:
             fd.write(content)
+
+    def export_to_json(self, objects=None):
+        if objects is None:
+            objects = list(self.objects())
+        data = self.marshmallow_schema.dump(self.objects(), many=True)
+        dump_json(data, self.json_file)
 
     def load_from_cache(self, session=None):
         session = session or self.session
