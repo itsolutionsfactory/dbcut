@@ -49,6 +49,7 @@ def parse_query(qd, session, config):
         "from",
         "where",
         "order_by",
+        "offset",
         "limit",
         "backref_depth",
         "join_depth",
