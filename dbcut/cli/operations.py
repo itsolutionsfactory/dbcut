@@ -117,8 +117,8 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 def sync_data(ctx):
 
     if ctx.profiler:
-        ctx.dest_db.start_profiler()
         ctx.src_db.start_profiler()
+        ctx.dest_db.start_profiler()
 
     with ctx.dest_db.no_fkc_session() as session:
         queries = parse_queries(ctx)
@@ -127,10 +127,10 @@ def sync_data(ctx):
             copy_query(ctx, query, session, query_index, number_of_queries)
 
     if ctx.profiler:
-        ctx.dest_db.stop_profiler()
         ctx.src_db.stop_profiler()
-        ctx.dest_db.profiler_stats()
+        ctx.dest_db.stop_profiler()
         ctx.src_db.profiler_stats()
+        ctx.dest_db.profiler_stats()
 
 
 def sync_schema(ctx):
