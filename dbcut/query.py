@@ -3,15 +3,17 @@ import hashlib
 import os
 from collections import OrderedDict
 
-from mlalchemy import parse_query as mlalchemy_parse_query
+from pptree import print_tree
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
                             subqueryload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient
 
+from .parser import parse_query as mlalchemy_parse_query
 from .serializer import dump_json, to_json
-from .utils import merge_dicts, to_unicode
+from .utils import (aslist, cached_property, merge_dicts, redirect_stdout,
+                    to_unicode)
 
 
 def parse_query(qd, session, config):
@@ -39,7 +41,8 @@ def parse_query(qd, session, config):
     if isinstance(full_qd["include"], str):
         full_qd["include"] = [full_qd["include"]]
 
-    query = mlalchemy_parse_query(qd).to_sqlalchemy(session, session.bind._db.models)
+    mlquery = mlalchemy_parse_query(qd)
+    query = mlquery.to_query(session, session.bind._db.models)
 
     order_by = full_qd.pop("order-by", None)
     if order_by:
@@ -74,13 +77,15 @@ def parse_query(qd, session, config):
         full_qd["include"],
     )
 
+    query = mlquery.apply_filters(query)
+
     return query
 
 
 class BaseQuery(Query):
 
     query_dict = None
-    relations_tree = None
+    relation_tree = None
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
@@ -216,11 +221,8 @@ class BaseQuery(Query):
             )
             nodes = []
             for next_model, next_path, relationship in next_models:
-                if relationship.direction is interfaces.ONETOMANY:
-                    node_name = "─ⁿ{}".format(next_model.__name__)
-                else:
-                    node_name = "─¹{}".format(next_model.__name__)
-                next_node = RelationNode(node_name, root_node, relationship)
+
+                next_node = RelationTree(next_model.__name__, root_node, relationship)
 
                 gen = breadth_first_walk_and_unload_generator(
                     next_node, next_model, next_path, join_depth, backref_depth
@@ -237,7 +239,7 @@ class BaseQuery(Query):
                         except StopIteration:
                             node["stop_iteration"] = True
 
-        root_node = RelationNode(self.model_class.__name__)
+        root_node = RelationTree(self.model_class.__name__)
         list(breadth_first_walk_and_unload_generator(root_node, self.model_class, []))
 
         if include:
@@ -262,11 +264,11 @@ class BaseQuery(Query):
 
                 return direct_paths
 
-            def cut_relations_tree(relations_to_keep, tree):
+            def cut_relation_tree(relations_to_keep, tree):
                 if tree.relationship in relations_to_keep or tree.relationship is None:
                     children = []
                     for child in tree.children:
-                        child_tree = cut_relations_tree(relations_to_keep, child)
+                        child_tree = cut_relation_tree(relations_to_keep, child)
                         if child_tree is not None:
                             children.append(child_tree)
                     tree.children = children
@@ -276,10 +278,10 @@ class BaseQuery(Query):
             for target_name in include:
                 new_relations_to_load.extend(get_direct_path(target_name))
             relations_to_load = new_relations_to_load
-            cut_relations_tree([r for r, p in relations_to_load], root_node)
+            cut_relation_tree([r for r, p in relations_to_load], root_node)
 
         query = self._clone()
-        query.relations_tree = root_node
+        query.relation_tree = root_node
 
         for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
@@ -321,15 +323,48 @@ def render_query(query, reindent=True):
         return raw_sql
 
 
-class RelationNode:
+class RelationTree:
     def __init__(self, name, parent=None, relationship=None):
         self.name = name
         self.parent = parent
         self.relationship = relationship
         self.children = []
 
+        if relationship is not None:
+            if self.relationship.direction is interfaces.ONETOMANY:
+                self.repr_name = "─ⁿ{}".format(self.name)
+            else:
+                self.repr_name = "─¹{}".format(self.name)
+        else:
+            self.repr_name = self.name
+
         if parent:
             self.parent.children.append(self)
+
+    @cached_property
+    @aslist
+    def flatten(self):
+        yield self.name
+        for child in self.children:
+            yield from child.flatten  # noqa
+
+    def render(self, return_value=False):
+        with redirect_stdout() as stream:
+            print_tree(self, childattr="children", nameattr="repr_name")
+
+        tables = self.flatten
+
+        value = (
+            stream.getvalue()
+            + "\n\n"
+            + "%s table" % len(tables)
+            + ("s" if len(tables) > 1 else "")
+            + " loaded\n"
+        )
+        if return_value:
+            return value
+        else:
+            print(value)
 
 
 def get_relationships(model):

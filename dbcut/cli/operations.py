@@ -6,7 +6,7 @@ from sqlalchemy import MetaData
 from tqdm import tqdm
 
 from ..query import parse_query
-from ..utils import to_unicode, tree_pretty_print
+from ..utils import to_unicode
 
 
 def parse_queries(ctx):
@@ -80,7 +80,7 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
     ctx.log("Query %d/%d : " % ((query_index + 1), number_of_queries), nl=False)
     ctx.log(json.dumps(query.query_dict, sort_keys=False))
     ctx.log("")
-    ctx.log(tree_pretty_print(query.relations_tree))
+    ctx.log(query.relation_tree.render(return_value=True))
     ctx.log(" ---> Cache key : %s" % query.cache_key)
 
     continue_operation = True
