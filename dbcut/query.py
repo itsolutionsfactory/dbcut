@@ -10,7 +10,7 @@ from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient
 
-from .serializer import dump_json, to_json
+from .serializer import dump_json, load_json, to_json
 from .utils import merge_dicts, to_unicode
 
 
@@ -126,7 +126,9 @@ class BaseQuery(Query):
     @property
     def is_cached(self):
         if self.query_dict is not None:
-            return os.path.isfile(self.cache_file)
+            return os.path.isfile(self.cache_file) and os.path.isfile(
+                self.count_cache_file
+            )
         return False
 
     @property
@@ -143,6 +145,8 @@ class BaseQuery(Query):
         content = sa_serializer.dumps(objects)
         with open(self.cache_file, "wb") as fd:
             fd.write(content)
+        count_data = {"count": len(objects)}
+        dump_json(count_data, self.count_cache_file)
 
     def export_to_json(self, objects=None):
         if objects is None:
@@ -153,8 +157,10 @@ class BaseQuery(Query):
     def load_from_cache(self, session=None):
         session = session or self.session
         metadata = session.db.metadata
+        count = load_json(self.count_cache_file)["count"]
+
         with open(self.cache_file, "rb") as fd:
-            return sa_serializer.loads(fd.read(), metadata, session)
+            return count, sa_serializer.loads(fd.read(), metadata, session)
 
     def objects(self):
         for obj in self:

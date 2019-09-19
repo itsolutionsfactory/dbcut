@@ -44,9 +44,8 @@ def get_objects_generator(ctx, query, session):
 
         else:
             using_cache = True
-            generator = (obj for obj in query.load_from_cache())
-            # TODO: get count from cache
-            count = query.count()
+            count, data = query.load_from_cache()
+            generator = (obj for obj in data)
 
     def objects_generator():
         progressbar = None
