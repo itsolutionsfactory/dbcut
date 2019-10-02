@@ -4,6 +4,7 @@ import os
 from collections import OrderedDict
 
 from mlalchemy import parse_query as mlalchemy_parse_query
+from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
                             subqueryload)
@@ -19,6 +20,7 @@ def parse_query(qd, session, config):
     """
     defaults = {
         "limit": config["default_limit"],
+        "backref_limit": config["default_backref_limit"],
         "backref_depth": config["default_backref_depth"],
         "join_depth": config["default_join_depth"],
         "exclude": [],
@@ -51,6 +53,7 @@ def parse_query(qd, session, config):
         "order_by",
         "offset",
         "limit",
+        "backref_limit",
         "backref_depth",
         "join_depth",
         "exclude",
@@ -84,6 +87,7 @@ class BaseQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
+        event.listen(self, "before_compile", self._apply_subquery_limit, retval=True)
 
     class QueryStr(str):
         # Useful for debug
@@ -293,6 +297,21 @@ class BaseQuery(Query):
             elif relationship.direction is interfaces.MANYTOONE:
                 query = query.options(joinedload(path))
 
+        return query
+
+    def _apply_subquery_limit(self, query):
+        if query._attributes:
+            for keyattr in query._attributes.keys():
+                if isinstance(keyattr, tuple):
+                    key = keyattr[0]
+                    if key == "orig_query":
+                        orig_query = query._attributes[keyattr]
+                        if orig_query.query_dict:
+                            backref_limit = orig_query.query_dict.get(
+                                "backref_limit", None
+                            )
+                            if backref_limit is not None:
+                                query = query.limit(backref_limit)
         return query
 
 
