@@ -4,6 +4,7 @@ import os
 from collections import OrderedDict
 
 from pptree import print_tree
+from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
                             subqueryload)
@@ -21,6 +22,7 @@ def parse_query(qd, session, config):
     """
     defaults = {
         "limit": config["default_limit"],
+        "backref_limit": config["default_backref_limit"],
         "backref_depth": config["default_backref_depth"],
         "join_depth": config["default_join_depth"],
         "exclude": [],
@@ -54,6 +56,7 @@ def parse_query(qd, session, config):
         "order_by",
         "offset",
         "limit",
+        "backref_limit",
         "backref_depth",
         "join_depth",
         "exclude",
@@ -89,6 +92,7 @@ class BaseQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
+        event.listen(self, "before_compile", self._apply_subquery_limit, retval=True)
 
     class QueryStr(str):
         # Useful for debug
@@ -131,7 +135,9 @@ class BaseQuery(Query):
     @property
     def is_cached(self):
         if self.query_dict is not None:
-            return os.path.isfile(self.cache_file)
+            return os.path.isfile(self.cache_file) and os.path.isfile(
+                self.count_cache_file
+            )
         return False
 
     @property
@@ -148,6 +154,8 @@ class BaseQuery(Query):
         content = sa_serializer.dumps(objects)
         with open(self.cache_file, "wb") as fd:
             fd.write(content)
+        count_data = {"count": len(objects)}
+        dump_json(count_data, self.count_cache_file)
 
     def export_to_json(self, objects=None):
         if objects is None:
@@ -158,8 +166,10 @@ class BaseQuery(Query):
     def load_from_cache(self, session=None):
         session = session or self.session
         metadata = session.db.metadata
+        count = load_json(self.count_cache_file)["count"]
+
         with open(self.cache_file, "rb") as fd:
-            return sa_serializer.loads(fd.read(), metadata, session)
+            return count, sa_serializer.loads(fd.read(), metadata, session)
 
     def objects(self):
         for obj in self:
@@ -178,6 +188,7 @@ class BaseQuery(Query):
     def with_loaded_relations(
         self, max_join_depth, max_backref_depth, exclude, include
     ):
+        query = self._clone()
         all_models = self.session.db.models
         already_seen_models = [
             all_models.get(table_name)
@@ -275,12 +286,18 @@ class BaseQuery(Query):
                     return tree
 
             new_relations_to_load = []
+            leaf_relationships = []
             for target_name in include:
-                new_relations_to_load.extend(get_direct_path(target_name))
+                direct_paths = get_direct_path(target_name)
+                if len(direct_paths) > 0:
+                    leaf_relationships.append(direct_paths[0])
+                    new_relations_to_load.extend(get_direct_path(target_name))
             relations_to_load = new_relations_to_load
             cut_relation_tree([r for r, p in relations_to_load], root_node)
 
-        query = self._clone()
+            for _, leaf_path in leaf_relationships:
+                query = query.join(*leaf_path.split("."))
+
         query.relation_tree = root_node
 
         for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
@@ -290,6 +307,20 @@ class BaseQuery(Query):
                 query = query.options(joinedload(path))
 
         return query
+
+    def _apply_subquery_limit(self, query):
+        if query._attributes:
+            for keyattr in query._attributes.keys():
+                if isinstance(keyattr, tuple):
+                    key = keyattr[0]
+                    if key == "orig_query":
+                        orig_query = query._attributes[keyattr]
+                        if orig_query.query_dict:
+                            backref_limit = orig_query.query_dict.get(
+                                "backref_limit", None
+                            )
+                            if backref_limit is not None:
+                                query = query.limit(backref_limit)
 
 
 class QueryProperty(object):
