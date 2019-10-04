@@ -35,7 +35,7 @@ class MLQuery(BaseMLQuery):
         if self.query_fragment is not None:
             query = query.filter(self.query_fragment.to_sqlalchemy(query))
 
-        if self.order_by is not None:
+        if self.order_by:
             criteria = []
             for order_by in self.order_by:
                 field, direction = [i for i in order_by.items()][0]
@@ -51,6 +51,10 @@ class MLQuery(BaseMLQuery):
                     criterion = criterion.desc()
                 criteria.append(criterion)
             query = query.order_by(*criteria)
+        else:
+            ordering_keys = query.model_class._default_ordering()
+            if ordering_keys:
+                query = query.order_by(*ordering_keys)
 
         if self.offset is not None:
             query = query.offset(self.offset)
