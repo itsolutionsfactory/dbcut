@@ -12,7 +12,7 @@ from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient
 
 from .parser import parse_query as mlalchemy_parse_query
-from .serializer import dump_json, to_json
+from .serializer import dump_json, load_json, to_json
 from .utils import (aslist, cached_property, merge_dicts, redirect_stdout,
                     to_unicode)
 
@@ -113,7 +113,11 @@ class BaseQuery(Query):
             key = to_json(sorted([(k, v) for k, v in self.query_dict.items()]))
         else:
             key = self.query_dict
-        return hashlib.sha1(to_unicode(key).encode("utf-8")).hexdigest()
+        key_string = "%s-%s" % (
+            self.session.db.engine.url.__to_string__(),
+            to_unicode(key),
+        )
+        return hashlib.sha1(key_string.encode("utf-8")).hexdigest()
 
     @property
     def cache_basename(self):
