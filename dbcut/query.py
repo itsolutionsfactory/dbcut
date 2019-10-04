@@ -369,9 +369,9 @@ class RelationTree:
 
         if relationship is not None:
             if self.relationship.direction is interfaces.ONETOMANY:
-                self.repr_name = "─ⁿ{}".format(self.name)
+                self.repr_name = "─ⁿ─{}".format(self.name)
             else:
-                self.repr_name = "─¹{}".format(self.name)
+                self.repr_name = "─¹─{}".format(self.name)
         else:
             self.repr_name = self.name
 
