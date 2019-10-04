@@ -195,7 +195,8 @@ class BaseQuery(Query):
             for table_name in exclude
             if table_name in all_models
         ]
-        already_seen_models.append(self.model_class.__name__)
+        already_seen_models.append(self.model_class)
+
         relations_to_load = []
 
         def breadth_first_walk_and_unload_generator(
