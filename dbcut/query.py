@@ -2,6 +2,7 @@
 import hashlib
 import os
 from collections import OrderedDict
+from weakref import WeakSet
 
 from pptree import print_tree
 from sqlalchemy import event
@@ -85,6 +86,9 @@ def parse_query(qd, session, config):
     return query
 
 
+VISITED_QUERIES = WeakSet()
+
+
 class BaseQuery(Query):
 
     query_dict = None
@@ -92,7 +96,10 @@ class BaseQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
-        event.listen(self, "before_compile", self._apply_subquery_limit, retval=True)
+        event.listen(
+            self, "before_compile", self._apply_backref_collection_limit, retval=True
+        )
+        VISITED_QUERIES.add(self)
 
     class QueryStr(str):
         # Useful for debug
