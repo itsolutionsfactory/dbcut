@@ -309,7 +309,7 @@ class BaseQuery(Query):
             cut_relation_tree([r for r, p in relations_to_load], root_node)
 
             for _, leaf_path in leaf_relationships:
-                query = query.join(*leaf_path.split("."))
+                query = query.join(*leaf_path.split("."), isouter=True)
 
         query.relation_tree = root_node
 
