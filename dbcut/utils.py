@@ -152,6 +152,19 @@ class CachedProperty(object):
 cached_property = CachedProperty
 
 
+class classproperty(object):
+    """
+    @property for @classmethod
+    taken from http://stackoverflow.com/a/13624858
+    """
+
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, owner_self, owner_cls):
+        return self.fget(owner_cls)
+
+
 def generate_valid_index_name(index, dialect):
     table_name = index.table.name
     columns_names = "_".join([cn.name for cn in index.columns])
