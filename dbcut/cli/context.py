@@ -79,15 +79,17 @@ class Context(object):
         """Logs a message to stderr."""
         kwargs.setdefault("file", sys.stderr)
         prefix = kwargs.pop("prefix", "")
+        tty_truncate = kwargs.pop("tty_truncate", False)
         for msg in args:
             message = prefix + msg
             if self.debug:
                 message = message.replace("\r", "")
                 kwargs["nl"] = True
-            if self.is_tty:
-                message = "\n".join(
-                    msg[: self.tty_columns] for msg in message.split("\n")
-                )
+            if tty_truncate:
+                if self.is_tty:
+                    message = "\n".join(
+                        msg[: self.tty_columns] for msg in message.split("\n")
+                    )
             if not self.dump_sql:
                 click.echo(message, **kwargs)
 
