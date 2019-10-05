@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import mlalchemy.structures
 from mlalchemy.constants import OP_NOT, OP_OR, ORDER_ASC, ORDER_DESC
-from mlalchemy.errors import (InvalidComparatorError, InvalidFieldError,
-                              InvalidTableError)
+from mlalchemy.errors import InvalidFieldError, InvalidTableError
 from mlalchemy.structures import MLQuery as BaseMLQuery
 from mlalchemy.structures import MLQueryFragment as BaseMLQueryFragment
 from mlalchemy.structures import logger
