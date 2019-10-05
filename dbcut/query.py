@@ -8,9 +8,11 @@ from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
-                            subqueryload)
+                            selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
+from sqlalchemy.orm.query import Bundle
 from sqlalchemy.orm.session import make_transient
+from sqlalchemy.sql import functions
 
 from .parser import parse_query as mlalchemy_parse_query
 from .serializer import dump_json, load_json, to_json
@@ -315,25 +317,37 @@ class BaseQuery(Query):
 
         for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
-                query = query.options(subqueryload(path))
+                query = query.options(selectinload(path))
             elif relationship.direction is interfaces.MANYTOONE:
                 query = query.options(joinedload(path))
 
         return query
 
-    def _apply_subquery_limit(self, query):
+    def _apply_backref_collection_limit(self, query):
+        def query_with_limit(query):
+            for visited_query in VISITED_QUERIES:
+                query_dict = getattr(visited_query, "query_dict", None)
+                if query_dict is not None:
+                    return query.limit(query_dict.get("backref_limit", None) or None)
+            return query
+
         if query._attributes:
             for keyattr in query._attributes.keys():
                 if isinstance(keyattr, tuple):
                     key = keyattr[0]
                     if key == "orig_query":
+                        # this is a sub query
                         orig_query = query._attributes[keyattr]
                         if orig_query.query_dict:
-                            backref_limit = orig_query.query_dict.get(
-                                "backref_limit", None
-                            )
-                            if backref_limit is not None:
-                                query = query.limit(backref_limit)
+                            return query_with_limit(query)
+            for desc in query.column_descriptions:
+                if (
+                    desc["entity"] is None
+                    and desc["name"] == "pk"
+                    and desc["type"] == Bundle
+                ):
+                    # this is a selectin query
+                    return query_with_limit(query)
         return query
 
 
