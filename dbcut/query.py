@@ -113,8 +113,9 @@ class BaseQuery(Query):
             key = to_json(sorted([(k, v) for k, v in self.query_dict.items()]))
         else:
             key = self.query_dict
-        key_string = "%s-%s" % (
+        key_string = "%s-%s-%s" % (
             self.session.db.engine.url.__to_string__(),
+            to_json(self.model_class._table_info),
             to_unicode(key),
         )
         return hashlib.sha1(key_string.encode("utf-8")).hexdigest()
