@@ -52,7 +52,7 @@ class MLQuery(BaseMLQuery):
                 criteria.append(criterion)
             query = query.order_by(*criteria)
         else:
-            ordering_keys = query.model_class._default_ordering()
+            ordering_keys = query.model_class._default_ordering
             if ordering_keys:
                 query = query.order_by(*ordering_keys)
 
