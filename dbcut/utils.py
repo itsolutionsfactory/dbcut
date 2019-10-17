@@ -194,6 +194,14 @@ def create_directory(dir_path):
     return absolute_dir_path
 
 
+class VoidObject(object):
+    def __init__(*args, **kwargs):
+        pass
+
+    def __getattribute__(self, name):
+        return lambda *args, **kwargs: self
+
+
 def sorted_nested_dict(data):
     res = OrderedDict()
     for k, v in sorted(data.items()):

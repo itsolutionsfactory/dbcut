@@ -176,3 +176,17 @@ class AnsiColorFormatter(logging.Formatter):
 
         s += message
         return s
+
+
+def profiler_option(*args, **kwargs):
+    try:
+        import easy_profile  # noqa
+
+        return click.option(
+            "--profiler",
+            is_flag=True,
+            default=False,
+            help="Print database query counts.",
+        )
+    except:
+        return lambda func: func
