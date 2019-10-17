@@ -2,6 +2,7 @@
 # coding: utf8
 import os
 import sys
+from collections import OrderedDict
 from contextlib import contextmanager
 
 from io import StringIO
@@ -191,3 +192,15 @@ def create_directory(dir_path):
     if not os.path.exists(absolute_dir_path):
         os.makedirs(absolute_dir_path)
     return absolute_dir_path
+
+
+def sorted_nested_dict(data):
+    res = OrderedDict()
+    for k, v in sorted(data.items()):
+        if isinstance(v, dict):
+            res[k] = sorted_nested_dict(v)
+        elif isinstance(v, (list, tuple)):
+            res[k] = sorted(v)
+        else:
+            res[k] = v
+    return res

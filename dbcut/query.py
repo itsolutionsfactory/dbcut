@@ -4,6 +4,7 @@ import os
 from collections import OrderedDict
 from weakref import WeakSet
 
+import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
@@ -17,7 +18,7 @@ from sqlalchemy.sql import functions
 from .parser import parse_query as mlalchemy_parse_query
 from .serializer import dump_json, load_json, to_json
 from .utils import (aslist, cached_property, merge_dicts, redirect_stdout,
-                    to_unicode)
+                    sorted_nested_dict, to_unicode)
 
 
 def parse_query(qd, session, config):
@@ -114,20 +115,25 @@ class BaseQuery(Query):
         """
         return self.QueryStr(render_query(self))
 
+    @cached_property
+    def query_yaml(self):
+        return yaml.dump(
+            dict(self.query_dict), default_flow_style=False, sort_keys=False
+        )
+
+    @cached_property
+    def info(self):
+        return {
+            "engine_info": self.session.db.engine.url.__to_string__(),
+            "table_info": self.model_class._table_info,
+            "query_info": self.query_dict,
+        }
+
     @property
     def cache_key(self):
-        if self.query_dict is None:
-            raise RuntimeError("Missing 'query_dict'")
-        if isinstance(self.query_dict, dict):
-            key = to_json(sorted([(k, v) for k, v in self.query_dict.items()]))
-        else:
-            key = self.query_dict
-        key_string = "%s-%s-%s" % (
-            self.session.db.engine.url.__to_string__(),
-            to_json(self.model_class._table_info),
-            to_unicode(key),
-        )
-        return hashlib.sha1(key_string.encode("utf-8")).hexdigest()
+        return hashlib.sha1(
+            to_json(sorted_nested_dict(self.info)).encode("utf-8")
+        ).hexdigest()
 
     @property
     def cache_basename(self):
