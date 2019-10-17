@@ -129,7 +129,7 @@ class BaseQuery(Query):
             "query_info": self.query_dict,
         }
 
-    @property
+    @cached_property
     def cache_key(self):
         return hashlib.sha1(
             to_json(sorted_nested_dict(self.info)).encode("utf-8")
