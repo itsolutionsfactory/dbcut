@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-
-import ujson as json
 from io import open
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 
 def to_json(data, **extra_kwargs):
