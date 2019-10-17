@@ -153,29 +153,3 @@ def sync_schema(ctx):
 def sync_db(ctx):
     sync_schema(ctx)
     sync_data(ctx)
-
-
-def inspect_db(ctx):
-    infos = dict()
-    for table_name, size in ctx.src_db.count_all(estimate=True):
-        infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
-    for table_name, size in ctx.dest_db.count_all():
-        if table_name not in infos:
-            infos[table_name] = {"src_db_size": 0}
-        infos[table_name]["dest_db_size"] = size
-        diff = infos[table_name]["src_db_size"] - size
-        infos[table_name]["diff"] = diff
-
-    headers = ["Table", "Source estimated size", "Destination size", "Diff"]
-    rows = [
-        (
-            k,
-            to_unicode(infos[k]["src_db_size"]),
-            to_unicode(infos[k]["dest_db_size"]),
-            to_unicode(infos[k]["diff"]),
-        )
-        for k in infos.keys()
-    ]
-    if ctx.sort:
-        rows = sorted(rows, key=lambda x: x[0])
-    return rows, headers

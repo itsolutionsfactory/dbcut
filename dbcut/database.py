@@ -8,20 +8,18 @@ from contextlib import contextmanager
 
 from marshmallow import fields, post_dump
 from marshmallow_sqlalchemy import ModelSchema
-from sqlalchemy import MetaData, create_engine, event, func, inspect
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
-from sqlalchemy.sql.expression import select
 
 from .configuration import DEFAULT_CONFIG
 from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, generate_valid_index_name,
-                    to_unicode)
+from .utils import cached_property, generate_valid_index_name, to_unicode
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -229,34 +227,6 @@ class Database(object):
         for model_name in sorted(self.models.keys()):
             data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
-
-    @aslist
-    def count_all(self, estimate=True):
-        metadata = MetaData(self.engine)
-        metadata.reflect(bind=self.engine)
-        tables = dict(((t.name, t) for t in metadata.sorted_tables))
-        table_names = list(tables.keys())
-        with self.engine.connect() as con:
-            if estimate and self.dialect == "mysql":
-                rows = con.execute(
-                    "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
-                    % self.engine.url.database
-                )
-                for row in rows:
-                    if row["table_name"] in table_names:
-                        if row["table_rows"] > 0:
-                            tables.pop(row["table_name"])
-                            yield row["table_name"], row["table_rows"]
-
-            for table in tables.values():
-                pks = sorted(
-                    (c for c in table.c if c.primary_key), key=lambda c: c.name
-                )
-                if pks:
-                    count_query = select([func.count(pks[0])]).select_from(table)
-                else:
-                    count_query = select([func.count()]).select_from(table)
-                yield table.name, con.execute(count_query).scalar()
 
     def _gen_relationship(
         self, base, direction, return_fn, attrname, local_cls, referred_cls, **kw
