@@ -5,7 +5,7 @@ import click
 from tabulate import tabulate
 
 from ..configuration import Configuration
-from .context import Context, make_pass_decorator
+from .context import Context, make_pass_decorator, profiler_option
 from .operations import inspect_db, sync_db
 
 click.disable_unicode_literals_warning = True
@@ -48,9 +48,7 @@ def load_configuration_file(ctx, param, value):
     default=False,
     help="Drop existing database first",
 )
-@click.option(
-    "--profiler", is_flag=True, default=False, help="Print database query counts."
-)
+@profiler_option()
 @click.option(
     "-i",
     "--interactive",

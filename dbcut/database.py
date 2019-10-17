@@ -6,13 +6,12 @@ import sys
 import threading
 from contextlib import contextmanager
 
-from easy_profile import SessionProfiler, StreamReporter
 from marshmallow import fields, post_dump
 from marshmallow_sqlalchemy import ModelSchema
 from sqlalchemy import MetaData, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
-from sqlalchemy.orm import interfaces, mapper
+from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 
@@ -23,6 +22,14 @@ from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
 from .utils import (aslist, cached_property, generate_valid_index_name,
                     to_unicode)
+
+try:
+    from easy_profile import SessionProfiler, StreamReporter
+except ImportError:
+    from .utils import VoidObject
+
+    SessionProfiler = StreamReporter = VoidObject
+
 
 __all__ = ["Database"]
 
