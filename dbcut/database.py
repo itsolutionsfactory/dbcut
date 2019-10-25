@@ -188,6 +188,25 @@ class Database(object):
     def tables(self):
         return self.metadata.tables
 
+    @property
+    def table_names(self):
+        query = ""
+        with self.engine.connect() as conn:
+            if conn.engine.dialect.name == "mysql":
+                query = "SHOW TABLES"
+            elif conn.engine.dialect.name == "sqlite":
+                query = "SELECT name FROM sqlite_master WHERE type='table'"
+            elif conn.engine.dialect.name == "postgresql":
+                query = """SELECT table_name
+                           FROM information_schema.tables
+                           WHERE table_type = 'BASE TABLE'
+                           AND table_schema NOT IN ('pg_catalog', 'information_schema');
+                """
+            if query:
+                return [t[0] for t in conn.execute(query).fetchall()]
+            else:
+                return []
+
     @contextmanager
     def no_fkc_session(self):
         """ A context manager that give a session with all foreign key constraints disabled. """
