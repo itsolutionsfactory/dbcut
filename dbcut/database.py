@@ -81,7 +81,7 @@ class Database(object):
         self.profiler.commit()
 
     def profiler_stats(self):
-        StreamReporter().report(self.engine, self.profiler.stats)
+        StreamReporter(file=sys.stderr).report(self.engine, self.profiler.stats)
 
     @property
     def engine(self):
