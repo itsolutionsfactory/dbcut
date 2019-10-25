@@ -361,9 +361,10 @@ class BaseSchema(ModelSchema):
 
 
 class EngineConnector(object):
-    def __init__(self, db):
+    def __init__(self, db, connect_timeout=3):
         self._db = db
         self._engine = None
+        self.connect_timeout = connect_timeout
         self._lock = threading.Lock()
 
     def get_engine(self):
@@ -371,22 +372,26 @@ class EngineConnector(object):
             if self._engine is None:
                 options = {}
                 info = make_url(self._db.uri)
-                if info.drivername == "mysql":
-                    info.query.setdefault("charset", "utf8")
-                    options.setdefault("pool_size", 10)
-                    options.setdefault("pool_recycle", 3600)
+                if info.drivername in ("mysql", "postgresql"):
+                    connect_args = dict(info.query)
+                    connect_args["connect_timeout"] = int(
+                        connect_args.get("connect_timeout", self.connect_timeout)
+                    )
+                    options["connect_args"] = connect_args
+                    if info.drivername == "mysql":
+                        info.query.setdefault("charset", "utf8")
+                        options.setdefault("pool_size", 10)
+                        options.setdefault("pool_recycle", 3600)
 
-                    try:
-                        from MySQLdb.cursors import SSCursor
-                    except ImportError:
-                        SSCursor = None  # noqa
+                        try:
+                            from MySQLdb.cursors import SSCursor
 
-                    if SSCursor is not None:
-                        connect_args = options.get("connect_args", {})
-                        connect_args.update({"cursorclass": SSCursor})
-                        options["connect_args"] = connect_args
-                elif info.drivername == "postgresql":
-                    options.setdefault("use_batch_mode", True)
+                            connect_args.update({"cursorclass": SSCursor})
+                        except ImportError:
+                            pass
+
+                    elif info.drivername == "postgresql":
+                        options.setdefault("use_batch_mode", True)
 
                 elif info.drivername == "sqlite":
                     no_pool = options.get("pool_size") == 0
