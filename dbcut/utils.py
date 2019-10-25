@@ -34,51 +34,6 @@ def tree_pretty_print(tree):
     return stream.getvalue() + "\n\n" + "Include %s tables\n" % len(flat)
 
 
-def uncache_module(exclude):
-    """Remove package modules from cache except excluded ones.
-    On next import they will be reloaded.
-
-    Args:
-        exclude (iter<str>): Sequence of module paths.
-    """
-    pkgs = []
-    for mod in exclude:
-        pkg = mod.split(".", 1)[0]
-        pkgs.append(pkg)
-
-    to_uncache = []
-    for mod in sys.modules:
-        if mod in exclude:
-            continue
-
-        if mod in pkgs:
-            to_uncache.append(mod)
-            continue
-
-        for pkg in pkgs:
-            if mod.startswith(pkg + "."):
-                to_uncache.append(mod)
-                break
-
-    for mod in to_uncache:
-        del sys.modules[mod]
-
-
-@contextmanager
-def monkeypatched(owner, attr, value):
-    """Monkey patch context manager.
-
-    with patch(os, 'open', myopen):
-        ...
-    """
-    old = getattr(owner, attr)
-    setattr(owner, attr, value)
-    try:
-        yield getattr(owner, attr)
-    finally:
-        setattr(owner, attr, old)
-
-
 def reraise(tp, value, tb=None):
     if value.__traceback__ is not tb:
         raise value.with_traceback(tb)
@@ -153,7 +108,7 @@ class CachedProperty(object):
 cached_property = CachedProperty
 
 
-class classproperty(object):
+class classproperty(object):  # noqa
     """
     @property for @classmethod
     taken from http://stackoverflow.com/a/13624858
@@ -212,3 +167,48 @@ def sorted_nested_dict(data):
         else:
             res[k] = v
     return res
+
+
+def uncache_module(exclude):
+    """Remove package modules from cache except excluded ones.
+    On next import they will be reloaded.
+
+    Args:
+        exclude (iter<str>): Sequence of module paths.
+    """
+    pkgs = []
+    for mod in exclude:
+        pkg = mod.split(".", 1)[0]
+        pkgs.append(pkg)
+
+    to_uncache = []
+    for mod in sys.modules:
+        if mod in exclude:
+            continue
+
+        if mod in pkgs:
+            to_uncache.append(mod)
+            continue
+
+        for pkg in pkgs:
+            if mod.startswith(pkg + "."):
+                to_uncache.append(mod)
+                break
+
+    for mod in to_uncache:
+        del sys.modules[mod]
+
+
+@contextmanager
+def monkeypatched(owner, attr, value):
+    """Monkey patch context manager.
+
+    with patch(os, 'open', myopen):
+        ...
+    """
+    old = getattr(owner, attr)
+    setattr(owner, attr, value)
+    try:
+        yield getattr(owner, attr)
+    finally:
+        setattr(owner, attr, old)

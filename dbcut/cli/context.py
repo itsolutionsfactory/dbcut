@@ -11,7 +11,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from ..database import Database
-from ..utils import cached_property
+from ..utils import cached_property, reraise
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)  # noqa
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)  # noqa
@@ -21,19 +21,28 @@ blue = lambda x, **kwargs: click.style("%s" % x, fg="blue", **kwargs)  # noqa
 red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)  # noqa
 
 
+CONTEXT_SETTINGS = dict(auto_envvar_prefix="dbcut", help_option_names=["-h", "--help"])
+
+
 class Context(object):
     def __init__(self):
-        self.debug = False
-        self.verbose = True
-        self.force_yes = False
-        self.dump_sql = False
-        self.export_json = False
-        self.drop_db = False
-        self.force_refresh = False
-        self.last_only = False
-        self.no_cache = False
-        self.profiler = False
-        self.interactive = False
+        self.flags = [
+            "debug",
+            "verbose",
+            "quiet",
+            "force_yes",
+            "dump_sql",
+            "export_json",
+            "drop_db",
+            "force_refresh",
+            "last_only",
+            "no_cache",
+            "profiler",
+            "interactive",
+        ]
+        for flag in self.flags:
+            setattr(self, flag, False)
+        self._log_configured = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
 
@@ -48,6 +57,8 @@ class Context(object):
         return Database(uri=self.config["databases"]["source_uri"])
 
     def configure_log(self):
+        if self._log_configured:
+            return
         logging.basicConfig()
         self.logger = logging.getLogger("dbcut.cli")
 
@@ -75,9 +86,14 @@ class Context(object):
             self.logger.debug("Query Complete!")
             self.logger.debug("Total Time: %f" % total)
 
+        self._log_configured = True
+
     def log(self, *args, **kwargs):
         """Logs a message to stderr."""
         kwargs.setdefault("file", sys.stderr)
+        quietable = kwargs.pop("quietable", False)
+        if quietable and self.quiet:
+            return
         prefix = kwargs.pop("prefix", "")
         tty_truncate = kwargs.pop("tty_truncate", False)
         for msg in args:
@@ -104,15 +120,38 @@ class Context(object):
         kwargs.setdefault("abort", False)
         return click.confirm(message, **kwargs)
 
+    def switch_flag(self, flag_name):
+        if getattr(self, flag_name, None) is False:
+            setattr(self, flag_name, True)
+            if flag_name == "interactive":
+                setattr(self, "force_yes", False)
+            elif flag_name == "force_yes":
+                setattr(self, "interactive", False)
+            elif flag_name == "debug":
+                setattr(self, "verbose", True)
+                setattr(self, "quiet", False)
+            elif flag_name == "verbose":
+                setattr(self, "quiet", False)
+            elif flag_name == "quiet":
+                setattr(self, "verbose", False)
+
     def update_options(self, **kwargs):
-        self.__dict__.update(kwargs)
-        if self.debug and not self.verbose:
-            self.verbose = True
-        if self.interactive:
-            self.force_yes = False
-        if self.dump_sql:
-            self.interactive = False
+        for name, value in kwargs.items():
+            if name in self.flags:
+                if value:
+                    self.switch_flag(name)
+            else:
+                setattr(self, name, value)
+
         self.configure_log()
+
+    def handle_error(self):
+        exc_type, exc_value, tb = sys.exc_info()
+        if isinstance(exc_value, (click.ClickException, click.Abort)) or self.debug:
+            reraise(exc_type, exc_value, tb.tb_next)
+        else:
+            sys.stderr.write(u"\nError: %s\n" % exc_value)
+            sys.exit(1)
 
 
 def make_pass_decorator(context_klass, ensure=True):
@@ -124,11 +163,18 @@ def make_pass_decorator(context_klass, ensure=True):
                 obj = ctx.ensure_object(context_klass)
             else:
                 obj = ctx.find_object(context_klass)
-            return ctx.invoke(f, obj, *args[1:], **kwargs)
+            obj.update_options(**kwargs)
+            try:
+                return ctx.invoke(f, obj, *args[1:], **kwargs)
+            except:
+                obj.handle_error()
 
         return update_wrapper(new_func, f)
 
     return decorator
+
+
+pass_context = make_pass_decorator(Context)
 
 
 re_color_codes = re.compile(r"\033\[(\d;)?\d+m")
@@ -178,15 +224,58 @@ class AnsiColorFormatter(logging.Formatter):
         return s
 
 
-def profiler_option(*args, **kwargs):
-    try:
-        import easy_profile  # noqa
+def profiler_option():
+    def decorator(f):
+        try:
+            import easy_profile  # noqa
 
-        return click.option(
-            "--profiler",
-            is_flag=True,
-            default=False,
-            help="Print database query counts.",
-        )
-    except:
-        return lambda func: func
+            click.option(
+                "--profiler",
+                is_flag=True,
+                default=False,
+                help="Enables queries profiling.",
+            )(f)
+        except:
+            pass
+        return f
+
+    return decorator
+
+
+def global_options(default_quiet=False):
+    def decorator(f):
+
+        options = [
+            click.option(
+                "--verbose", is_flag=True, default=False, help="Enables verbose output."
+            ),
+            click.option(
+                "--debug", is_flag=True, default=False, help="Enables debug mode."
+            ),
+            click.option(
+                "--quiet",
+                "--no-quiet",
+                is_flag=True,
+                default=default_quiet,
+                help="Suppresses most warning and diagnostic messages.",
+            ),
+            click.option(
+                "-i",
+                "--interactive",
+                is_flag=True,
+                default=False,
+                help="Prompts for user intervention.",
+            ),
+            click.option(
+                "-y",
+                "--force-yes",
+                is_flag=True,
+                default=False,
+                help="Never prompts for user intervention",
+            ),
+        ]
+        for option in options:
+            option(f)
+        return f
+
+    return decorator
