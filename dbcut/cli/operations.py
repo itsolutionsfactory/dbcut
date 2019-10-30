@@ -228,3 +228,13 @@ def inspect_db(ctx):
     ctx.log("")
 
 
+def clean_cache(ctx):
+    included_extensions = ["cache", "count"]
+    file_names = [
+        os.path.join(ctx.config["cache"], fn)
+        for fn in os.listdir(ctx.config["cache"])
+        if any(fn.endswith(ext) for ext in included_extensions)
+    ]
+    for file in file_names:
+        os.remove(file)
+        ctx.log(" ---> removed %s" % file)
