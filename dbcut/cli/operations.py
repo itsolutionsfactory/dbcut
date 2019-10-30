@@ -9,7 +9,8 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 from ..query import parse_query
-from ..serializer import to_json
+from ..serializer import dump_yaml
+from ..utils import get_directory_size, to_unicode
 
 
 def parse_queries(ctx):
@@ -93,7 +94,9 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 
     ctx.log("")
     ctx.log("Query %d/%d : " % ((query_index + 1), number_of_queries), nl=False)
-    ctx.log(json.dumps(query.query_dict, sort_keys=False))
+    ctx.log("")
+    ctx.log("")
+    ctx.log(dump_yaml(query.query_dict), prefix="    ")
     ctx.log("", quietable=True)
     ctx.log(
         query.relation_tree.render(return_value=True), tty_truncate=True, quietable=True
