@@ -146,7 +146,8 @@ class BaseQuery(Query):
 
     @property
     def json_file(self):
-        return "{}.json".format(self.cache_basename)
+        basename = "{}-{}".format(self.model_class.__name__, self.cache_key)
+        return os.path.abspath(os.path.join(os.getcwd(), "{}.json".format(basename)))
 
     @property
     def count_cache_file(self):
