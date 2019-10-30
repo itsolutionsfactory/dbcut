@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
+import os
 from contextlib import contextmanager
 from itertools import chain
 
-import ujson as json
 from sqlalchemy_utils.functions import (create_database, database_exists,
                                         drop_database)
+from tabulate import tabulate
 from tqdm import tqdm
 
 from ..query import parse_query
+from ..serializer import to_json
 
 
 def parse_queries(ctx):
@@ -180,3 +182,46 @@ def flush(ctx):
 def load(ctx):
     sync_schema(ctx)
     load_data(ctx)
+
+
+def inspect_db(ctx):
+    infos = dict()
+    for table_name, size in ctx.src_db.count_all(estimate=ctx.estimate):
+        infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
+    for table_name, size in ctx.dest_db.count_all():
+        if table_name not in infos:
+            infos[table_name] = {"src_db_size": 0}
+        infos[table_name]["dest_db_size"] = size
+        diff = infos[table_name]["src_db_size"] - size
+        infos[table_name]["diff"] = diff
+
+    if ctx.estimate:
+        headers = ["Table", "Source estimated size", "Destination size", "Diff"]
+    else:
+        headers = ["Table", "Source size", "Destination size", "Diff"]
+
+    rows = [
+        (
+            k,
+            to_unicode(infos[k]["src_db_size"]),
+            to_unicode(infos[k]["dest_db_size"]),
+            to_unicode(infos[k]["diff"]),
+        )
+        for k in infos.keys()
+    ]
+    rows = sorted(rows, key=lambda x: x[0])
+
+    ctx.log(" ---> Databases ")
+    ctx.log("")
+    ctx.log(tabulate(rows, headers=headers), prefix="    ")
+    ctx.log("")
+    ctx.log("")
+    ctx.log(" ---> Cache ")
+    ctx.log("")
+    ctx.log("location : %s" % ctx.config["cache"], prefix="    ")
+    ctx.log(
+        "Disk usage : %.1f MB" % get_directory_size(ctx.config["cache"]), prefix="    "
+    )
+    ctx.log("")
+
+

@@ -39,6 +39,7 @@ class Context(object):
             "no_cache",
             "profiler",
             "interactive",
+            "estimate",
         ]
         for flag in self.flags:
             setattr(self, flag, False)
@@ -97,7 +98,7 @@ class Context(object):
         prefix = kwargs.pop("prefix", "")
         tty_truncate = kwargs.pop("tty_truncate", False)
         for msg in args:
-            message = prefix + msg
+            message = "\n".join(prefix + m for m in msg.split("\n"))
             if self.debug:
                 message = message.replace("\r", "")
                 kwargs["nl"] = True
