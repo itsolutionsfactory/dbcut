@@ -149,6 +149,7 @@ def load_data(ctx):
 def sync_schema(ctx):
     if not database_exists(ctx.dest_db.engine.url):
         create_db(ctx)
+        create_tables(ctx)
     else:
         if set(ctx.src_db.table_names) - set(ctx.dest_db.table_names):
             create_tables(ctx)
