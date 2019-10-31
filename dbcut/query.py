@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import os
-from collections import OrderedDict
 from weakref import WeakSet
 
 import yaml
@@ -15,79 +14,9 @@ from sqlalchemy.orm.query import Bundle
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.sql import functions
 
-from .parser import parse_query as mlalchemy_parse_query
 from .serializer import dump_json, load_json, to_json
 from .utils import (aslist, cached_property, merge_dicts, redirect_stdout,
                     sorted_nested_dict, to_unicode)
-
-
-def parse_query(qd, session, config):
-    """Parses the given query dictionary to produce a BaseQuery object.
-    """
-    defaults = {
-        "limit": config["default_limit"],
-        "backref_limit": config["default_backref_limit"],
-        "backref_depth": config["default_backref_depth"],
-        "join_depth": config["default_join_depth"],
-        "exclude": [],
-        "include": [],
-    }
-    qd.setdefault("limit", defaults["limit"])
-
-    full_qd = merge_dicts(defaults, qd)
-
-    if qd["limit"] in (None, False):
-        qd.pop("limit")
-
-    if isinstance(full_qd["exclude"], str):
-        full_qd["exclude"] = [full_qd["exclude"]]
-
-    full_qd["exclude"] = list(set(full_qd["exclude"] + config["global_exclude"]))
-
-    if isinstance(full_qd["include"], str):
-        full_qd["include"] = [full_qd["include"]]
-
-    mlquery = mlalchemy_parse_query(qd)
-    query = mlquery.to_query(session, session.bind._db.models)
-
-    order_by = full_qd.pop("order-by", None)
-    if order_by:
-        full_qd["order_by"] = order_by
-
-    qd_key_sort = [
-        "from",
-        "where",
-        "order_by",
-        "offset",
-        "limit",
-        "backref_limit",
-        "backref_depth",
-        "join_depth",
-        "exclude",
-        "include",
-    ]
-
-    if full_qd["include"]:
-        full_qd["join_depth"] = full_qd["backref_depth"] = None
-    else:
-        full_qd["join_depth"] = full_qd["join_depth"] or 0
-        full_qd["backref_depth"] = full_qd["backref_depth"] or 0
-
-    query.query_dict = OrderedDict(
-        sorted(full_qd.items(), key=lambda x: qd_key_sort.index(x[0]))
-    )
-
-    query = query.with_loaded_relations(
-        full_qd["join_depth"],
-        full_qd["backref_depth"],
-        full_qd["exclude"],
-        full_qd["include"],
-    )
-
-    query = mlquery.apply_filters(query)
-
-    return query
-
 
 VISITED_QUERIES = WeakSet()
 

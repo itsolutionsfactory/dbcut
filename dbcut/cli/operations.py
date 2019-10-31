@@ -8,7 +8,7 @@ from sqlalchemy_utils.functions import (create_database, database_exists,
 from tabulate import tabulate
 from tqdm import tqdm
 
-from ..query import parse_query
+from ..parser import parse_query
 from ..serializer import dump_yaml
 from ..utils import get_directory_size, to_unicode
 
