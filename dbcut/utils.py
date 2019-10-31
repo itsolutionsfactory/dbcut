@@ -4,9 +4,12 @@ import os
 import sys
 from collections import OrderedDict
 from contextlib import contextmanager
+from string import Template
 
 from io import StringIO
 from pptree import print_tree
+
+from .exceptions import UndefinedError
 
 
 @contextmanager
@@ -221,3 +224,11 @@ def get_directory_size(directory):
         for file in files:
             directory_size += os.path.getsize(os.path.join(path, file))
     return directory_size / (1024 * 1024.0)
+
+
+def expand_env_variables(content):
+    t = Template(content)
+    try:
+        return t.substitute(os.environ)
+    except KeyError as exc_value:
+        raise UndefinedError(exc_value.args[0]) from exc_value

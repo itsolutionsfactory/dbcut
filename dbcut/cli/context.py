@@ -11,7 +11,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from ..database import Database
-from ..utils import cached_property, reraise
+from ..utils import cached_property, expand_env_variables, reraise
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)  # noqa
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)  # noqa
@@ -49,13 +49,15 @@ class Context(object):
 
     @cached_property
     def dest_db(self):
-        return Database(
-            uri=self.config["databases"]["destination_uri"], echo_sql=self.dump_sql
+        destination_uri = expand_env_variables(
+            self.config["databases"]["destination_uri"]
         )
+        return Database(uri=destination_uri, echo_sql=self.dump_sql)
 
     @cached_property
     def src_db(self):
-        return Database(uri=self.config["databases"]["source_uri"])
+        source_uri = expand_env_variables(self.config["databases"]["source_uri"])
+        return Database(uri=source_uri, echo_sql=self.dump_sql)
 
     def configure_log(self):
         if self._log_configured:
