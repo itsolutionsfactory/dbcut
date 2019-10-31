@@ -13,7 +13,6 @@ from .utils import create_directory, reraise
 
 logger = logging.getLogger(__name__)
 
-
 DEFAULT_CONFIG = {
     "cache": os.path.expanduser("~/.cache/dbcut"),
     "log_level": 3,
@@ -34,11 +33,10 @@ class Configuration(dict):
         dict.__init__(self, defaults)
         self.load_file(filename)
 
-    def load_file(self, filename, silent=False):
+    def load_file(self, filename):
         """Updates the values in the config from a config file.
         :param filename: the filename of the config.  This can either be an
             absolute filename or a filename relative to the root path.
-        :param silent: If True, fail silently.
         """
         try:
             conf = {}
@@ -48,17 +46,12 @@ class Configuration(dict):
                 self[k] = v
         except IOError as e:
             e.strerror = "Unable to load configuration file (%s)" % e.strerror
-            if silent:
-                logger.warning(e.strerror)
-                return False
-            else:
-                exc_type, exc_value, tb = sys.exc_info()
-                reraise(exc_type, exc_value, tb.tb_next)
+            exc_type, exc_value, tb = sys.exc_info()
+            reraise(exc_type, exc_value, tb.tb_next)
+
         self["cache"] = create_directory(self["cache"])
         if self.get("queries", None) is None:
             self["queries"] = []
-
-        return True
 
     def __str__(self):
         return pprint.pprint(self)
