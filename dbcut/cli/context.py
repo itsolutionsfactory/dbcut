@@ -7,6 +7,7 @@ import time
 from functools import update_wrapper
 
 import click
+from dotenv import load_dotenv
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -46,6 +47,7 @@ class Context(object):
         self._log_configured = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
+        load_dotenv()
 
     @cached_property
     def dest_db(self):

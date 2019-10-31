@@ -67,3 +67,4 @@ target/
 # dbcut
 dbcut.yml
 /demo/*.sql
+/.env
