@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+from contextlib import contextmanager
 
 from types import ModuleType
 
@@ -12,7 +13,15 @@ class Module(ModuleType):
 
     __all_alternate_models__ = {}
 
-    def switch_models(self):
+    @contextmanager
+    def permuted_models(self):
+        self._switch_models()
+        try:
+            yield
+        finally:
+            self._switch_models()
+
+    def _switch_models(self):
         copy = self.__all_models__.copy()
         self.__all_models__ = self.__all_alternate_models__
         self.__all_alternate_models__ = copy
