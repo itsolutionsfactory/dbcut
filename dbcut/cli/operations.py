@@ -229,7 +229,7 @@ def inspect_db(ctx):
     ctx.log("")
 
 
-def clean_cache(ctx):
+def purge_cache(ctx):
     included_extensions = ["cache", "count"]
     file_names = [
         os.path.join(ctx.config["cache"], fn)
