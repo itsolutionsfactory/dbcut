@@ -44,6 +44,7 @@ class Context(object):
         ]
         for flag in self.flags:
             setattr(self, flag, False)
+        self.only_tables = []
         self._log_configured = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
@@ -145,6 +146,10 @@ class Context(object):
             if name in self.flags:
                 if value:
                     self.switch_flag(name)
+            elif name == "only_tables":
+                for tables_value in value:
+                    self.only_tables.extend(tables_value.split(","))
+                self.only_tables = list(set(self.only_tables))
             else:
                 setattr(self, name, value)
 
