@@ -3,13 +3,13 @@
 import click
 
 from ..context import global_options, pass_context, profiler_option
-from ..operations import clean_cache
+from ..operations import purge_cache
 
 
-@click.command("cleancache")
+@click.command("purgecache")
 @profiler_option()
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
     """ Remove all cached queries."""
-    clean_cache(ctx)
+    purge_cache(ctx)
