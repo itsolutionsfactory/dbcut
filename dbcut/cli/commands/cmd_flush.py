@@ -11,5 +11,5 @@ from ..operations import flush
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """Removes and recreates ALL TABLES from target database"""
+    """Removes ALL TABLES from the target database and recreates them"""
     flush(ctx)
