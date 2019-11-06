@@ -16,10 +16,13 @@ from ..utils import get_directory_size, to_unicode
 def parse_queries(ctx):
     queries = []
     session = ctx.src_db.session
-    if ctx.last_only:
-        raw_queries = [ctx.config["queries"][-1]]
+    if ctx.only_tables:
+        raw_queries = [q for q in ctx.config["queries"] if q["from"] in ctx.only_tables]
     else:
         raw_queries = ctx.config["queries"]
+
+    if ctx.last_only and raw_queries:
+        raw_queries = [raw_queries[-1]]
 
     for dict_query in raw_queries:
         queries.append(parse_query(dict_query.copy(), session, ctx.config))
@@ -153,10 +156,9 @@ def sync_schema(ctx):
     else:
         if set(ctx.src_db.table_names) - set(ctx.dest_db.table_names):
             create_tables(ctx)
-
     ctx.log(" ---> Reflecting database schema from %s" % ctx.dest_db.engine.url)
-    ctx.src_db.reflect(bind=ctx.dest_db.engine)
     ctx.dest_db.reflect(bind=ctx.dest_db.engine)
+    ctx.src_db.reflect(bind=ctx.dest_db.engine)
 
 
 def create_db(ctx):

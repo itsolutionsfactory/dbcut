@@ -12,10 +12,40 @@ def load_options():
     def decorator(f):
 
         options = [
-            click.option("--flush", "flush", is_flag=True, default=False, help="Removes and recreates ALL TABLES first"),
-            click.option("--no-cache", "no_cache", is_flag=True, default=False, help="Do not use any local cache"),
-            click.option("--force-refresh", "force_refresh", is_flag=True, default=False, help="Force refresh all cached queries"),
-            click.option("-l", "--last-only", is_flag=True, default=False, help="Executes only the last query"),
+            click.option(
+                "--flush",
+                "flush",
+                is_flag=True,
+                default=False,
+                help="Removes and recreates ALL TABLES first",
+            ),
+            click.option(
+                "--no-cache",
+                "no_cache",
+                is_flag=True,
+                default=False,
+                help="Do not use any local cache",
+            ),
+            click.option(
+                "--only",
+                "only_tables",
+                help="Executes only queries for the given tables",
+                multiple=True,
+            ),
+            click.option(
+                "--force-refresh",
+                "force_refresh",
+                is_flag=True,
+                default=False,
+                help="Force refresh all cached queries",
+            ),
+            click.option(
+                "-l",
+                "--last-only",
+                is_flag=True,
+                default=False,
+                help="Executes only the last query",
+            ),
         ]
         for option in options:
             option(f)
