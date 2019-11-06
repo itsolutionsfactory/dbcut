@@ -185,6 +185,16 @@ def flush(ctx):
     create_tables(ctx, checkfirst=False)
 
 
+def clear(ctx):
+    if database_exists(ctx.dest_db.engine.url):
+        ctx.confirm("Removes ALL data from %s" % ctx.dest_db.engine.url, default=False)
+        ctx.log(f" ---> Removing all data from {ctx.dest_db.engine.url} database")
+        with ctx.dest_db.no_fkc_session() as session:
+            for table_name in ctx.dest_db.table_names:
+                session.execute(f"TRUNCATE TABLE {table_name}")
+            session.commit()
+
+
 def load(ctx):
     sync_schema(ctx)
     load_data(ctx)
