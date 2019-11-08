@@ -55,12 +55,16 @@ class Context(object):
         destination_uri = expand_env_variables(
             self.config["databases"]["destination_uri"]
         )
-        return Database(uri=destination_uri, echo_sql=self.dump_sql)
+        return Database(
+            uri=destination_uri, echo_sql=self.dump_sql, cache_dir=self.config["cache"]
+        )
 
     @cached_property
     def src_db(self):
         source_uri = expand_env_variables(self.config["databases"]["source_uri"])
-        return Database(uri=source_uri, echo_sql=self.dump_sql)
+        return Database(
+            uri=source_uri, echo_sql=self.dump_sql, cache_dir=self.config["cache"]
+        )
 
     def configure_log(self):
         if self._log_configured:

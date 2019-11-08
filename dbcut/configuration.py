@@ -5,9 +5,9 @@ import logging
 import os
 import pprint
 import sys
+from io import open
 
 import yaml
-from io import open
 
 from .utils import create_directory, reraise
 
