@@ -250,6 +250,9 @@ class BaseQuery(Query):
             for _, leaf_path in leaf_relationships:
                 query = query.join(*leaf_path.split("."), isouter=True)
 
+            if leaf_relationships:
+                query = query.group_by(query.model_class)
+
         query.relation_tree = root_node
 
         for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
