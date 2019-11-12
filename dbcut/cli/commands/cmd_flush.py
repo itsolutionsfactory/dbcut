@@ -3,7 +3,7 @@
 import click
 
 from ..context import global_options, pass_context, profiler_option
-from ..operations import flush
+from ..operations import flush, purge_cache
 
 
 @click.command("flush")
@@ -11,5 +11,6 @@ from ..operations import flush
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """Removes ALL TABLES from the target database and recreates them"""
+    """Purge cache, removes ALL TABLES from the target database and recreates them"""
+    purge_cache(ctx)
     flush(ctx)
