@@ -13,7 +13,6 @@ from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.query import Bundle
 from sqlalchemy.orm.session import make_transient
 
-from .generated_models import permuted_models
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
 
@@ -100,13 +99,11 @@ class BaseQuery(Query):
     def save_to_cache(self, objects=None):
         if objects is None:
             objects = list(self.objects())
-        # avoid models/classes collision with pickle
-        with permuted_models():
-            content = sa_serializer.dumps(objects)
-            with open(self.cache_file, "wb") as fd:
-                fd.write(content)
-            count_data = {"count": len(objects)}
-            dump_json(count_data, self.count_cache_file)
+        content = sa_serializer.dumps(objects)
+        with open(self.cache_file, "wb") as fd:
+            fd.write(content)
+        count_data = {"count": len(objects)}
+        dump_json(count_data, self.count_cache_file)
 
     def export_to_json(self, objects=None):
         if objects is None:

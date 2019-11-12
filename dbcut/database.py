@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import os
+import pickle
 import re
 import sys
 import threading
@@ -20,8 +22,8 @@ from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, generate_valid_index_name,
-                    to_unicode)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -46,16 +48,19 @@ class Database(object):
         self,
         uri=None,
         cache_dir=None,
+        enable_cache=True,
         session_options=None,
         echo_sql=False,
         echo_stream=None,
+        metadata=None,
     ):
         self.connector = None
         self._reflected = False
         self.echo_sql = echo_sql
         self.echo_stream = echo_stream or sys.stdout
-        self.cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
-        self.uri = uri
+        self.uri = make_url(uri)
+        self.enable_cache = enable_cache
+        self.global_cache_dir = cache_dir or DEFAULT_CONFIG["cache"]
         self._session_options = dict(session_options or {})
         self._session_options.setdefault("autoflush", False)
         self._session_options.setdefault("autocommit", False)
@@ -63,11 +68,16 @@ class Database(object):
         self._model_class_registry = {}
         self.profiler = SessionProfiler(engine=self.engine)
 
+        if self.enable_cache and self.cached_metadata:
+            metadata = metadata or self.cached_metadata
+
         self.Model = automap_base(
             cls=type("BaseModel", (BaseModel,), {}),
             name="Model",
             metaclass=BaseDeclarativeMeta,
+            metadata=metadata,
         )
+
         self.Model._db = self
         self.Model._session = SessionProperty(self)
         self.Model._query = QueryProperty(self)
@@ -75,6 +85,22 @@ class Database(object):
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
         event.listen(mapper, "after_configured", self._configure_serialization)
+
+    @cached_property
+    def cache_dir(self):
+        if self.uri.host:
+            db_cache_dir = os.path.join(
+                self.uri.drivername, self.uri.host, self.uri.database
+            )
+        else:
+            db_cache_dir = os.path.join(self.uri.drivername, self.uri.database)
+        _cache_dir = os.path.join(self.global_cache_dir, db_cache_dir)
+        create_directory(_cache_dir)
+        return _cache_dir
+
+    @cached_property
+    def safe_url(self):
+        return self.uri.__to_string__(hide_password=True)
 
     def start_profiler(self):
         self.profiler.begin()
@@ -102,6 +128,21 @@ class Database(object):
         """Proxy for Model.metadata"""
         return self.Model.metadata
 
+    @cached_property
+    def cached_metadata(self):
+        _cached_metadata = None
+        if os.path.exists(self.cached_metadata_path):
+            try:
+                with open(os.path.join(self.cached_metadata_path), "rb") as cache_file:
+                    _cached_metadata = pickle.load(file=cache_file)
+            except IOError:
+                pass
+        return _cached_metadata
+
+    @property
+    def cached_metadata_path(self):
+        return os.path.join(self.cache_dir, "metadata.cache")
+
     @property
     def query(self):
         """Proxy for session.query"""
@@ -124,23 +165,39 @@ class Database(object):
         return self.session.rollback()
 
     def reflect(self, bind=None):
-        """Proxy for Model.prepare"""
+        """Reflect metadata from database"""
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            self.Model.prepare(
-                bind, reflect=True, generate_relationship=self._gen_relationship
-            )
+            if self.enable_cache and self.cached_metadata:
+                self.Model.prepare(bind)
+            else:
+                self.Model.prepare(
+                    bind, reflect=True, generate_relationship=self._gen_relationship
+                )
 
-            for table in self.tables.values():
-                for constraint in table.constraints:
-                    if constraint.name:
-                        constraint.name = conv(constraint.name)
+                for table in self.tables.values():
+                    for constraint in table.constraints:
+                        if constraint.name:
+                            constraint.name = conv(constraint.name)
 
-            for index in self.get_all_indexes():
-                index.name = conv(generate_valid_index_name(index, self.engine.dialect))
+                for index in self.get_all_indexes():
+                    index.name = conv(
+                        generate_valid_index_name(index, self.engine.dialect)
+                    )
+                if self.enable_cache:
+                    with open(
+                        os.path.join(self.cached_metadata_path), "wb"
+                    ) as cache_file:
+                        pickle.dump(self.metadata, cache_file)
 
             self._reflected = True
+
+    def prepare(self, bind=None):
+        """Proxy for Model.prepare"""
+        if bind is None:
+            bind = self.engine
+        self.Model.prepare(bind)
 
     def get_all_indexes(self):
         indexes = []
@@ -420,7 +477,7 @@ class EngineConnector(object):
         with self._lock:
             if self._engine is None:
                 options = {}
-                info = make_url(self._db.uri)
+                info = self._db.uri
                 if info.drivername in ("mysql", "postgresql"):
                     connect_args = dict(info.query)
                     connect_args["connect_timeout"] = int(

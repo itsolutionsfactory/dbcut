@@ -10,9 +10,10 @@ import click
 from dotenv import load_dotenv
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.engine.url import make_url
 
 from ..database import Database
-from ..utils import cached_property, expand_env_variables, reraise
+from ..utils import cached_property, expand_env_variables, pickle_copy, reraise
 
 magenta = lambda x, **kwargs: click.style("%s" % x, fg="magenta", **kwargs)  # noqa
 yellow = lambda x, **kwargs: click.style("%s" % x, fg="yellow", **kwargs)  # noqa
@@ -51,19 +52,35 @@ class Context(object):
         load_dotenv()
 
     @cached_property
-    def dest_db(self):
+    def dest_db_uri(self):
         destination_uri = expand_env_variables(
             self.config["databases"]["destination_uri"]
         )
+        return make_url(destination_uri)
+
+    @cached_property
+    def src_db_uri(self):
+        source_uri = expand_env_variables(self.config["databases"]["source_uri"])
+        return make_url(source_uri)
+
+    @cached_property
+    def dest_db(self):
+        self.src_db.reflect()
         return Database(
-            uri=destination_uri, echo_sql=self.dump_sql, cache_dir=self.config["cache"]
+            uri=self.dest_db_uri,
+            echo_sql=self.dump_sql,
+            cache_dir=self.config["cache"],
+            enable_cache=False,
+            metadata=pickle_copy(self.src_db.metadata),
         )
 
     @cached_property
     def src_db(self):
-        source_uri = expand_env_variables(self.config["databases"]["source_uri"])
         return Database(
-            uri=source_uri, echo_sql=self.dump_sql, cache_dir=self.config["cache"]
+            uri=self.src_db_uri,
+            echo_sql=self.dump_sql,
+            cache_dir=self.config["cache"],
+            enable_cache=(not self.no_cache),
         )
 
     def configure_log(self):
