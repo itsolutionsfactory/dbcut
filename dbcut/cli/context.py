@@ -7,7 +7,7 @@ import time
 from functools import update_wrapper
 
 import click
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url
@@ -49,7 +49,7 @@ class Context(object):
         self._log_configured = False
         self.is_tty = sys.stdout.isatty()
         self.tty_columns, self.tty_rows = shutil.get_terminal_size(fallback=(80, 24))
-        load_dotenv()
+        load_dotenv(dotenv_path=find_dotenv(usecwd=True))
 
     @cached_property
     def dest_db_uri(self):
