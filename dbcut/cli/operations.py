@@ -150,45 +150,50 @@ def load_data(ctx):
 
 
 def sync_schema(ctx):
-    if not database_exists(ctx.dest_db.engine.url):
+    ctx.log(" ---> Reflecting database schema from %s" % ctx.src_db_uri.__to_string__())
+    ctx.src_db.reflect()
+    if not database_exists(ctx.dest_db_uri):
         create_db(ctx)
-        create_tables(ctx)
-    else:
-        if set(ctx.src_db.table_names) - set(ctx.dest_db.table_names):
-            create_tables(ctx)
-    ctx.log(" ---> Reflecting database schema from %s" % ctx.dest_db.engine.url)
-    ctx.dest_db.reflect(bind=ctx.dest_db.engine)
-    ctx.src_db.reflect(bind=ctx.dest_db.engine)
+    create_tables(ctx)
 
 
 def create_db(ctx):
-    if not database_exists(ctx.dest_db.engine.url):
-        ctx.log(" ---> Creating new %s database" % ctx.dest_db.engine.url)
-        create_database(ctx.dest_db.engine.url)
+    if not database_exists(ctx.dest_db_uri):
+        ctx.log(" ---> Creating new %s database" % ctx.dest_db_uri.__to_string__())
+        create_database(ctx.dest_db_uri)
 
 
 def create_tables(ctx, checkfirst=True):
-    ctx.log(" ---> Reflecting database schema from %s" % ctx.src_db.engine.url)
-    ctx.dest_db.reflect(bind=ctx.src_db.engine)
-    ctx.log(" ---> Creating all tables and relations on %s" % ctx.dest_db.engine.url)
+    ctx.dest_db.prepare()
+    ctx.log(
+        " ---> Creating all tables and relations on %s"
+        % ctx.dest_db_uri.__to_string__()
+    )
     ctx.dest_db.create_all(checkfirst=checkfirst)
 
 
 def flush(ctx):
-    if database_exists(ctx.dest_db.engine.url):
+    if database_exists(ctx.dest_db_uri):
         ctx.confirm(
-            "Removes ALL TABLES from %s" % ctx.dest_db.engine.url, default=False
+            "Removes ALL TABLES from %s" % ctx.dest_db_uri.__to_string__(),
+            default=False,
         )
-        ctx.log(" ---> Removing %s database" % ctx.dest_db.engine.url)
-        drop_database(ctx.dest_db.engine.url)
+        ctx.log(" ---> Removing %s database" % ctx.dest_db_uri.__to_string__())
+        drop_database(ctx.dest_db_uri)
     create_db(ctx)
+    ctx.log(" ---> Reflecting database schema from %s" % ctx.src_db_uri.__to_string__())
+    ctx.src_db.reflect()
     create_tables(ctx, checkfirst=False)
 
 
 def clear(ctx):
-    if database_exists(ctx.dest_db.engine.url):
-        ctx.confirm("Removes ALL data from %s" % ctx.dest_db.engine.url, default=False)
-        ctx.log(f" ---> Removing all data from {ctx.dest_db.engine.url} database")
+    if database_exists(ctx.dest_db_uri):
+        ctx.confirm(
+            "Removes ALL data from %s" % ctx.src_db_uri.__to_string__(), default=False
+        )
+        ctx.log(
+            f" ---> Removing all data from {ctx.src_db_uri.__to_string__()} database"
+        )
         with ctx.dest_db.no_fkc_session() as session:
             for table_name in ctx.dest_db.table_names:
                 session.execute(f"TRUNCATE TABLE {table_name}")
@@ -243,11 +248,18 @@ def inspect_db(ctx):
 
 def purge_cache(ctx):
     included_extensions = ["cache", "count"]
+
+    def listfiles(path):
+        for r, d, f in os.walk(path):
+            for file in f:
+                yield os.path.join(r, file)
+
     file_names = [
-        os.path.join(ctx.config["cache"], fn)
-        for fn in os.listdir(ctx.config["cache"])
+        fn
+        for fn in listfiles(ctx.config["cache"])
         if any(fn.endswith(ext) for ext in included_extensions)
     ]
+
     for file in file_names:
         os.remove(file)
-        ctx.log(" ---> removed %s" % file)
+    ctx.log(" ---> Purged all cache")

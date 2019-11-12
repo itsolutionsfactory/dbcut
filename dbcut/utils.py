@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # coding: utf8
 import os
+import pickle
 import sys
 from collections import OrderedDict
 from contextlib import contextmanager
+from io import BytesIO, StringIO
 from string import Template
 
-from io import StringIO
 from pptree import print_tree
 
 from .exceptions import UndefinedError
@@ -232,3 +233,10 @@ def expand_env_variables(content):
         return t.substitute(os.environ)
     except KeyError as exc_value:
         raise UndefinedError(exc_value.args[0]) from exc_value
+
+
+def pickle_copy(obj):
+    buf = BytesIO()
+    pickle.dump(obj, file=buf)
+    buf.seek(0)
+    return pickle.load(buf)

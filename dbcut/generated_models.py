@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from contextlib import contextmanager
-
 from types import ModuleType
 
 
@@ -11,27 +9,10 @@ class Module(ModuleType):
 
     __all_models__ = {}
 
-    __all_alternate_models__ = {}
-
-    @contextmanager
-    def permuted_models(self):
-        self._switch_models()
-        try:
-            yield
-        finally:
-            self._switch_models()
-
-    def _switch_models(self):
-        copy = self.__all_models__.copy()
-        self.__all_models__ = self.__all_alternate_models__
-        self.__all_alternate_models__ = copy
-
     def register_new_model(self, model):
         model_name = model.__name__
         if model_name not in self.__all_models__:
             self.__all_models__[model_name] = model
-        else:
-            self.__all_alternate_models__[model_name] = model
         if model_name not in self.__all__:
             self.__all__.append(model_name)
 
