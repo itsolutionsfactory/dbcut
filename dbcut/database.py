@@ -98,10 +98,6 @@ class Database(object):
         create_directory(_cache_dir)
         return _cache_dir
 
-    @cached_property
-    def safe_url(self):
-        return self.uri.__to_string__(hide_password=True)
-
     def start_profiler(self):
         self.profiler.begin()
 
