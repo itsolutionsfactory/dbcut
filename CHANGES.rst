@@ -3,10 +3,12 @@
 Dbcut changelog
 ===============
 
-Version 0.1.1.dev0
-------------------
+Version 0.1.1
+-------------
 
-**unreleased**
+Released on November 14th 2019
+
+- Removed universal wheel package, only python3 is supported
 
 Version 0.1.0
 -------------
