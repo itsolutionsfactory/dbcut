@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
-from __future__ import unicode_literals, print_function
+from __future__ import print_function, unicode_literals
+
+import datetime
 import os
 import re
-
-from io import open
-import datetime
 import subprocess
-
-from argparse import RawTextHelpFormatter, ArgumentParser, FileType
+from argparse import ArgumentParser, FileType, RawTextHelpFormatter
+from io import open
 
 
 def generate_changelog_title(version):
