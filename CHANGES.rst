@@ -3,7 +3,7 @@
 Dbcut changelog
 ===============
 
-Version 0.1.0.dev0
-------------------
+Version 0.1.0
+-------------
 
-**unreleased**
+Released on November 14th 2019
