@@ -56,6 +56,7 @@ class Database(object):
     ):
         self.connector = None
         self._reflected = False
+        self._prepared = False
         self.echo_sql = echo_sql
         self.echo_stream = echo_stream or sys.stdout
         self.uri = make_url(uri)
@@ -124,7 +125,7 @@ class Database(object):
         """Proxy for Model.metadata"""
         return self.Model.metadata
 
-    @cached_property
+    @property
     def cached_metadata(self):
         _cached_metadata = None
         if os.path.exists(self.cached_metadata_path):
@@ -191,9 +192,11 @@ class Database(object):
 
     def prepare(self, bind=None):
         """Proxy for Model.prepare"""
-        if bind is None:
-            bind = self.engine
-        self.Model.prepare(bind)
+        if not (self._reflected or self._prepared):
+            if bind is None:
+                bind = self.engine
+            self.Model.prepare(bind)
+            self._prepared = True
 
     def get_all_indexes(self):
         indexes = []
