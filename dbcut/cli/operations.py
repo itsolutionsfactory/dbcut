@@ -188,7 +188,7 @@ def clear(ctx):
         )
         with ctx.dest_db.no_fkc_session() as session:
             for table_name in ctx.dest_db.table_names:
-                session.execute("TRUNCATE TABLE {}".format(repr(table_name)))
+                session.execute("TRUNCATE TABLE {}".format(table_name))
             session.commit()
 
 
