@@ -10,6 +10,7 @@ from mlalchemy.structures import logger
 from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlalchemy.sql.expression import and_, not_, or_
 
+# from .models import BaseModel
 from .utils import merge_dicts, uncache_module
 
 
@@ -67,12 +68,20 @@ class MLQuery(BaseMLQuery):
 
 
 class MLQueryFragment(BaseMLQueryFragment):
-    def to_sqlalchemy(self, query):
-        tables = query.session.bind._db.models
-        table = query.model_class
+    def to_sqlalchemy(self, query_or_table):
+        from .query import BaseQuery
+        tables = []
+        relation_tree = []
+        table = query_or_table
+        if isinstance(query_or_table, BaseQuery):
+            relation_tree = query_or_table.relation_tree.flatten
+            table = query_or_table.model_class
+            tables = query_or_table.session.bind._db.models
+
         filter_criteria = []
         for clause in self.clauses:
             field_parts = clause.field.split(".")
+            _table = table
             if not field_parts[0] == clause.field:
                 table_name = field_parts[0]
                 field = field_parts[1]
@@ -80,7 +89,7 @@ class MLQueryFragment(BaseMLQueryFragment):
                     raise InvalidTableError(
                         "Table does not exist in tables dictionary: %s" % table_name
                     )
-                if table_name not in query.relation_tree.flatten:
+                if table_name not in relation_tree:
                     raise InvalidTableError(
                         "Table '%s' is missing from the current relation tree"
                         % table_name
@@ -88,6 +97,7 @@ class MLQueryFragment(BaseMLQueryFragment):
                 table = tables[table_name]
                 clause.field = field
             filter_criteria.append(clause.to_sqlalchemy(table))
+            table = _table
         filter_criteria.extend(
             [sub_frag.to_sqlalchemy(table) for sub_frag in self.sub_fragments]
         )

@@ -162,12 +162,16 @@ class VoidObject(object):
 
 
 def sorted_nested_dict(data):
+    if not isinstance(data, dict):
+        return data
     res = OrderedDict()
     for k, v in sorted(data.items()):
         if isinstance(v, dict):
             res[k] = sorted_nested_dict(v)
         elif isinstance(v, (list, tuple)):
-            res[k] = sorted(v)
+            res[k] = []
+            for i in v:
+                res[k].append(sorted_nested_dict(i))
         else:
             res[k] = v
     return res
