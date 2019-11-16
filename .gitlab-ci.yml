@@ -10,7 +10,7 @@ variables:
   DB_USER: dbcuttest
 
 services:
-  - docker:19.03.0-dind
+  - docker:dind
 
 before_script:
   - docker version
