@@ -1,6 +1,8 @@
-image:
-  name: docker/compose:1.23.2
-  entrypoint: [""]
+image: python:3
+
+stages:
+  - build
+  - test
 
 variables:
   DB_PASSWORD: dbcuttest
@@ -21,27 +23,18 @@ services:
 - name: postgres:latest
   alias: testpostgres_without_data
 
+before_script:
+  - cat /etc/issue
+  - sudo bash docker/build-base.sh
+  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=testmysql_with_data "$MYSQL_DATABASE"
 
-connect:
-  image: testmysql_with_data
+build:
+  stage: build
   script:
-  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mysql "$MYSQL_DATABASE"
+    - make init
 
-# before_script:
-#   - docker version
-#   - docker-compose version
-
-# stages:
-#   - build
-#   - test
-
-# build:
-#   stage: build
-#   script:
-#     - docker-compose build
-
-# test:
-#   stage: test
-#   script:
-#     - docker-compose run --rm dbcut_app
+test:
+  stage: test
+  script:
+    - make test
 
