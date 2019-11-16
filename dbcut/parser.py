@@ -70,13 +70,15 @@ class MLQuery(BaseMLQuery):
 class MLQueryFragment(BaseMLQueryFragment):
     def to_sqlalchemy(self, query_or_table):
         from .query import BaseQuery
+
         tables = []
-        relation_tree = []
         table = query_or_table
         if isinstance(query_or_table, BaseQuery):
-            relation_tree = query_or_table.relation_tree.flatten
             table = query_or_table.model_class
             tables = query_or_table.session.bind._db.models
+        else:
+            table = query_or_table
+            tables = query_or_table._db.models
 
         filter_criteria = []
         for clause in self.clauses:
@@ -88,11 +90,6 @@ class MLQueryFragment(BaseMLQueryFragment):
                 if table_name not in tables:
                     raise InvalidTableError(
                         "Table does not exist in tables dictionary: %s" % table_name
-                    )
-                if table_name not in relation_tree:
-                    raise InvalidTableError(
-                        "Table '%s' is missing from the current relation tree"
-                        % table_name
                     )
                 table = tables[table_name]
                 clause.field = field
