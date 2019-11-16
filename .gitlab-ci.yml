@@ -28,7 +28,7 @@ initdb:
   stage: initdb
   image: mariadb:latest
   script:
-  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=testmysql_with_data "$MYSQL_DATABASE"
+  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
 
 
 build:
