@@ -1,4 +1,4 @@
-image: python:3
+image: python:3.6
 
 stages:
   - build
@@ -16,17 +16,22 @@ variables:
 
 
 services:
-- name: mysql:latest
+- name: mariadb:latest
   alias: testmysql_with_data
-- name: mysql:latest
+- name: mariadb:latest
   alias: testmysql_without_data
 - name: postgres:latest
   alias: testpostgres_without_data
 
+connect:
+  image: mariadb:latest
+  script:
+  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=testmysql_with_data "$MYSQL_DATABASE"
+
+
 before_script:
   - cat /etc/issue
   - bash docker/build-base.sh
-  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=testmysql_with_data "$MYSQL_DATABASE"
 
 build:
   stage: build
