@@ -25,7 +25,7 @@ services:
 
 before_script:
   - cat /etc/issue
-  - sudo bash docker/build-base.sh
+  - bash docker/build-base.sh
   - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=testmysql_with_data "$MYSQL_DATABASE"
 
 build:
