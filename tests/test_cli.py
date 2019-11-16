@@ -105,6 +105,14 @@ databases:
 """
 
 
+def do_invoke_test(runner, *args, **kwargs):
+    kwargs.setdefault("catch_exceptions", False)
+    result = runner.invoke(*args, **kwargs)
+    if not result.exit_code == 0:
+        print(result.output)
+    assert result.exit_code == 0
+
+
 def do_cmd_test(database_yaml, cmd_name, *options):
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -193,12 +201,32 @@ def test_clear_mysql_to_postgres():
     do_cmd_test(mysql_postgres_databases, "clear")
 
 
-# def test_multiple_cmd_mysql_to_mysql():
-#     do_cmd_test(mysql_mysql_databases, "flush ")
+def test_loading_cache():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with open("dbcut.yml", "w") as f:
+            f.write(mysql_mysql_databases)
+            f.write(DEFAULT_YML)
+
+        do_invoke_test(runner, main, ["-y", "load"])
+        do_invoke_test(runner, main, ["-y", "load"])
+        do_invoke_test(runner, main, ["-y", "load", "--force-refresh"])
+        do_invoke_test(runner, main, ["-y", "load", "--no-cache"])
+        do_invoke_test(runner, main, ["-y", "purgecache"])
 
 
-# def test_multiple_cmd_mysql_to_sqlite():
-#     do_cmd_test(mysql_sqlite_databases, "multiple_cmd")
+def test_multiple_cmd_mysql_to_mysql():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with open("dbcut.yml", "w") as f:
+            f.write(mysql_mysql_databases)
+            f.write(DEFAULT_YML)
+
+        do_invoke_test(
+            runner,
+            main,
+            ["-y", "purgecache", "flush", "load", "--only", "employee_employee"],
+        )
 
 
 # def test_multiple_cmd_mysql_to_postgres():
