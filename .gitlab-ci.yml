@@ -7,9 +7,9 @@ stages:
 build:
   stage: build
   script:
-    - make docker-build
+    - docker-compose build
 
 test:
   stage: test
   script:
-    - make docker-test
+    - docker-compose run --rm dbcut_app
