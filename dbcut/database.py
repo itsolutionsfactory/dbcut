@@ -216,6 +216,18 @@ class Database(object):
         with self.no_fkc_session() as session:
             self.metadata.drop_all(session.bind, checkfirst=checkfirst)
 
+    def clear_all(self, checkfirst=True):
+        """Delete data from all tables"""
+        with self.no_fkc_session() as session:
+
+            if session.bind.dialect.name in ("mysql", "sqlite"):
+                clear_query = "TRUNCATE TABLE {};"
+            elif session.bind.dialect.name == "postgresql":
+                clear_query = "TRUNCATE TABLE {} CASCADE;"
+
+            for table_name in self.table_names:
+                session.execute(clear_query.format(table_name))
+
     def delete_all(self, bind=None, **kwargs):
         """Delete all table content."""
         if bind is None:

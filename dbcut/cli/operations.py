@@ -186,10 +186,7 @@ def clear(ctx):
         ctx.log(
             " ---> Removing all data from {} database".format(repr(ctx.dest_db_uri))
         )
-        with ctx.dest_db.no_fkc_session() as session:
-            for table_name in ctx.dest_db.table_names:
-                session.execute("TRUNCATE TABLE {}".format(table_name))
-            session.commit()
+        ctx.dest_db.clear_all()
 
 
 def load(ctx):
