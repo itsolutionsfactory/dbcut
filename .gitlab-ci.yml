@@ -1,4 +1,6 @@
-image: docker:stable
+image:
+  name: docker/compose:1.23.2
+  entrypoint: [""]
 
 stages:
   - build
