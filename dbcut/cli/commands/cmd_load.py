@@ -13,13 +13,6 @@ def load_options():
 
         options = [
             click.option(
-                "--flush",
-                "flush",
-                is_flag=True,
-                default=False,
-                help="Removes and recreates ALL TABLES first",
-            ),
-            click.option(
                 "--no-cache",
                 "no_cache",
                 is_flag=True,
