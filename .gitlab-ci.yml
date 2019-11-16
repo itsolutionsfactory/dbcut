@@ -26,6 +26,8 @@ services:
 test:
   stage: test
   script:
-    - apt-get install -y default-libmysqlclient-dev libpq-dev make python3-pip
+    - apt-get update
+    - apt-get install -y default-libmysqlclient-dev libpq-dev make python3-pip mariadb-client
+    - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
     - make init
     - make test
