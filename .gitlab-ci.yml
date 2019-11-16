@@ -1,8 +1,6 @@
-image: python:3.6
+image: debian:buster
 
 stages:
-  - initdb
-  - build
   - test
 
 variables:
@@ -24,21 +22,10 @@ services:
 - name: postgres:latest
   alias: postgres
 
-initdb:
-  stage: initdb
-  image: mariadb:latest
-  script:
-  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
-
 
 build:
   stage: build
   script:
-    - bash docker/build-base.sh
+    - apt-get install -y default-libmysqlclient-dev libpq-dev make python3-pip
     - make init
-
-test:
-  stage: test
-  script:
     - make test
-
