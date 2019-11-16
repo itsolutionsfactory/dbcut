@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import os
+from pickle import PicklingError
 from weakref import WeakSet
 
 import yaml
@@ -99,11 +100,14 @@ class BaseQuery(Query):
     def save_to_cache(self, objects=None):
         if objects is None:
             objects = list(self.objects())
-        content = sa_serializer.dumps(objects)
-        with open(self.cache_file, "wb") as fd:
-            fd.write(content)
-        count_data = {"count": len(objects)}
-        dump_json(count_data, self.count_cache_file)
+        try:
+            content = sa_serializer.dumps(objects)
+            with open(self.cache_file, "wb") as fd:
+                fd.write(content)
+            count_data = {"count": len(objects)}
+            dump_json(count_data, self.count_cache_file)
+        except PicklingError:
+            pass
 
     def export_to_json(self, objects=None):
         if objects is None:
