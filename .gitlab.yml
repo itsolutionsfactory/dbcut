@@ -1,0 +1,15 @@
+image: docker:stable
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - make docker-build
+
+test:
+  stage: test
+  script:
+    - make docker-test
