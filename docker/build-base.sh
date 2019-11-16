@@ -13,7 +13,7 @@ else
     apt-get install -y --no-install-recommends libmysqlclient-dev
 fi
 
-apt-get install -y libpq-dev mariadb-client make
+apt-get install -y libpq-dev make
 
 # Cleanup
 apt-get clean -y
