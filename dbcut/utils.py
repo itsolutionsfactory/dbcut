@@ -25,6 +25,25 @@ def redirect_stdout():
 
 
 def tree_pretty_print(tree):
+    """Pretty-print a tree of python objects.
+
+    Examples::
+
+    >>> from pptree import Node
+    >>> users = Node("users")
+    >>> group = Node("group", users)
+    >>> _ = Node("roles", group)
+    >>> _ = Node("permissions", group)
+    >>> _ = Node("comments", users)
+    >>> print(tree_pretty_print(users).strip())
+          ┌comments
+     users┤
+          │     ┌roles
+          └group┤
+                └permissions
+    Include 5 tables
+
+    """
     with redirect_stdout() as stream:
         print_tree(tree)
 
@@ -75,7 +94,12 @@ def to_unicode(obj, encoding="utf-8"):
 
 
 def merge_dicts(*dict_args):
-    """Merge given dicts into a new dict."""
+    """Merge given dicts into a new dict.
+
+    Examples::
+    >>> merge_dicts({"a": 1, "b": 2}, {"c": 3, "b": 20}, {"d": 4})
+    {'a': 1, 'b': 20, 'c': 3, 'd': 4}
+    """
     result = {}
     for dictionary in dict_args:
         result.update(dictionary)
