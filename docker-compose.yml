@@ -11,6 +11,9 @@ services:
       - DB_PASSWORD
       - DB_NAME
       - DB_USER
+      - MYSQL_DATABASE_WITH_DATA=testmysql_with_data
+      - MYSQL_DATABASE_WITHOUT_DATA=testmysql_without_data
+      - POSTGRES_DATABASE_WITHOUT_DATA=testpostgres_without_data
     depends_on:
       - testmysql_with_data
       - testmysql_without_data

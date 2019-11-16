@@ -7,6 +7,9 @@ variables:
   DB_PASSWORD: dbcuttest
   DB_NAME: dbcuttest
   DB_USER: dbcuttest
+  MYSQL_DATABASE_WITH_DATA: mariadb-1
+  MYSQL_DATABASE_WITHOUT_DATA: mariadb-2
+  POSTGRES_DATABASE_WITHOUT_DATA: postgres
   POSTGRES_DB: $DB_NAME
   POSTGRES_USER: $DB_USER
   POSTGRES_PASSWORD: $DB_PASSWORD
@@ -20,7 +23,6 @@ services:
 - name: mariadb:latest
   alias: mariadb-2
 - name: postgres:latest
-  alias: postgres
 
 
 test:

@@ -72,38 +72,38 @@ queries:
 
 mysql_mysql_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_without_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
+  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
 """
 
 mysql_sqlite_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
   destination_uri: sqlite:///test-db.db
 """
 
 mysql_postgres_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
-  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@testpostgres_without_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
+  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@${POSTGRES_DATABASE_WITHOUT_DATA}/${DB_NAME}
 """
 
 mysql_mysql_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_without_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
+  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
 """
 
 mysql_sqlite_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
   destination_uri: sqlite:///test-db.db
 """
 
 mysql_postgres_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
-  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@testpostgres_without_data/${DB_NAME}
+  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
+  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@${POSTGRES_DATABASE_WITHOUT_DATA}/${DB_NAME}
 """
 
 
@@ -235,8 +235,8 @@ def test_expand_env_variables():
     runner = CliRunner()
     mysql_mysql_databases = """
 databases:
-  source_uri: mysql://${XXXDB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_without_data/${DB_NAME}
+  source_uri: mysql://${XXXDB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
+  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
 """
     with runner.isolated_filesystem():
         with open("dbcut.yml", "w") as f:
