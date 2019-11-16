@@ -3,29 +3,45 @@ image:
   entrypoint: [""]
 
 variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""
   DB_PASSWORD: dbcuttest
   DB_NAME: dbcuttest
   DB_USER: dbcuttest
+  POSTGRES_DB: $DB_NAME
+  POSTGRES_USER: $DB_USER
+  POSTGRES_PASSWORD: $DB_PASSWORD
+  MYSQL_DATABASE: $DB_NAME
+  MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+
 
 services:
-  - docker:19.03.0-dind
+- name: mysql:latest
+  alias: testmysql_with_data
+- name: mysql:latest
+  alias: testmysql_without_data
+- name: postgres:latest
+  alias: testpostgres_without_data
 
-before_script:
-  - docker version
-  - docker-compose version
 
-stages:
-  - build
-  - test
-
-build:
-  stage: build
+connect:
+  image: testmysql_with_data
   script:
-    - docker-compose build
+  - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mysql "$MYSQL_DATABASE"
 
-test:
-  stage: test
-  script:
-    - docker-compose run --rm dbcut_app
+# before_script:
+#   - docker version
+#   - docker-compose version
+
+# stages:
+#   - build
+#   - test
+
+# build:
+#   stage: build
+#   script:
+#     - docker-compose build
+
+# test:
+#   stage: test
+#   script:
+#     - docker-compose run --rm dbcut_app
+
