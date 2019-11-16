@@ -1,6 +1,4 @@
-image:
-  name: docker/compose:1.23.2
-  entrypoint: [""]
+image: docker:dind
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -9,8 +7,6 @@ variables:
   DB_NAME: dbcuttest
   DB_USER: dbcuttest
 
-services:
-  - docker:dind
 
 before_script:
   - docker version
