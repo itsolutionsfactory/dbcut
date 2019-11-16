@@ -30,6 +30,8 @@ test:
   script:
     - apt-get update
     - apt-get install -y default-libmysqlclient-dev libpq-dev make python3-pip mariadb-client
-    - echo "SELECT 'OK';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
+    - echo "GRANT ALL ON *.* to '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
+    - echo "GRANT ALL ON *.* to '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';" | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --host=mariadb-2 "$MYSQL_DATABASE"
+    - cat docker/testmysql_with_data/dump.sql | mysql --user=$DB_USER --password="$DB_PASSWORD" --host=mariadb-1 "$MYSQL_DATABASE"
     - make init
     - make test
