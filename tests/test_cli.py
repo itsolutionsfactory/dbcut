@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+
 from click.testing import CliRunner
 from dbcut.cli.main import main
 
@@ -229,5 +231,20 @@ def test_multiple_cmd_mysql_to_mysql():
         )
 
 
-# def test_multiple_cmd_mysql_to_postgres():
-#     do_cmd_test(mysql_postgres_databases, "multiple_cmd")
+def test_expand_env_variables():
+    runner = CliRunner()
+    mysql_mysql_databases = """
+databases:
+  source_uri: mysql://${XXXDB_USER}:${DB_PASSWORD}@testmysql_with_data/${DB_NAME}
+  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@testmysql_without_data/${DB_NAME}
+"""
+    with runner.isolated_filesystem():
+        with open("dbcut.yml", "w") as f:
+            f.write(mysql_mysql_databases)
+            f.write(DEFAULT_YML)
+
+        del os.environ["DB_USER"]
+        result = runner.invoke(main, ["-y", "load"])
+        assert not result.exit_code == 0
+        print(result.output)
+        assert "XXXDB_USER" in result.output
