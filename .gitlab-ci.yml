@@ -23,8 +23,8 @@ services:
   alias: postgres
 
 
-build:
-  stage: build
+test:
+  stage: test
   script:
     - apt-get install -y default-libmysqlclient-dev libpq-dev make python3-pip
     - make init
