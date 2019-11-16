@@ -1,0 +1,49 @@
+version: '2'
+
+services:
+
+  dbcut_app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: make test
+    environment:
+      - DB_PASSWORD
+      - DB_NAME
+      - DB_USER
+    depends_on:
+      - testmysql_with_data
+      - testmysql_without_data
+      - testpostgres_without_data
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  testmysql_with_data:
+    image: mariadb:10.3
+    environment:
+      - MYSQL_ROOT_PASSWORD=$DB_PASSWORD
+      - MYSQL_PASSWORD=$DB_PASSWORD
+      - MYSQL_DATABASE=$DB_NAME
+      - MYSQL_USER=$DB_USER
+    volumes:
+      - ./docker/testmysql_with_data/:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+
+  testmysql_without_data:
+    image: mariadb:10.3
+    environment:
+      - MYSQL_ROOT_PASSWORD=$DB_PASSWORD
+      - MYSQL_PASSWORD=$DB_PASSWORD
+      - MYSQL_DATABASE=$DB_NAME
+      - MYSQL_USER=$DB_USER
+    restart: unless-stopped
+
+  testpostgres_without_data:
+    image: postgres:9
+    hostname: postgres
+    environment:
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_DB=$DB_NAME
+      - POSTGRES_USER=$DB_USER
+    restart: unless-stopped
