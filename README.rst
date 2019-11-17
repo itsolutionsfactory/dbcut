@@ -54,7 +54,7 @@ Let's take the following database example:
 .. image:: demo/example-simple-db.png
    :target: demo/example-simple-db.png
    :alt: Simple Database
-   :width: 100%
+
 
 We want to extract some users with all related data to our development database.
 
