@@ -1,8 +1,8 @@
 
 include CONTRIBUTING.rst
-include CHANGES.rst
+include CHANGES.md
 
-include README.rst
+include README.md
 include requirements.txt
 
 recursive-include tests *
