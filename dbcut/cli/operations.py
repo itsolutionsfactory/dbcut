@@ -186,7 +186,7 @@ def clear(ctx):
         ctx.log(
             " ---> Removing all data from {} database".format(repr(ctx.dest_db_uri))
         )
-        ctx.dest_db.clear_all()
+        ctx.dest_db.delete_all()
 
 
 def load(ctx):
