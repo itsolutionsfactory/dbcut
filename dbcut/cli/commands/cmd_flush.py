@@ -11,6 +11,6 @@ from ..operations import flush, purge_cache
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """Purge cache, removes ALL TABLES from the target database and recreates them"""
+    """Purge cache, remove ALL TABLES from the target database and recreate them"""
     purge_cache(ctx)
     flush(ctx)

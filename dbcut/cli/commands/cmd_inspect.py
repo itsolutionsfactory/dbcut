@@ -18,5 +18,5 @@ from ..operations import inspect_db
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """Checks databases content."""
+    """Check databases content."""
     inspect_db(ctx)

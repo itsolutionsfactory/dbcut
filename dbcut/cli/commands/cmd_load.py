@@ -53,5 +53,5 @@ def load_options():
 @profiler_option()
 @pass_context
 def cli(ctx, **kwargs):
-    """Extracts and loads data to the target database."""
+    """Extract and load data to the target database."""
     load(ctx)

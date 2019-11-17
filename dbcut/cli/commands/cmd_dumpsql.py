@@ -12,6 +12,6 @@ from .cmd_load import load_options
 @profiler_option()
 @pass_context
 def cli(ctx, **kwargs):
-    """Dumps all sql insert queries."""
+    """Dump all SQL insert queries."""
     ctx.dump_sql = True
     load(ctx)

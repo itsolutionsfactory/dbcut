@@ -11,5 +11,5 @@ from ..operations import clear
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """Removes all data (only) from the target database"""
+    """Remove all data (only) from the target database"""
     clear(ctx)

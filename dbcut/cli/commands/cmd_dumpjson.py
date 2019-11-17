@@ -12,6 +12,6 @@ from .cmd_load import load_options
 @profiler_option()
 @pass_context
 def cli(ctx, **kwargs):
-    """Exports data to json."""
+    """Export data to json."""
     ctx.export_json = True
     load(ctx)
