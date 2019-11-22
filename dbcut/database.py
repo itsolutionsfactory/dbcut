@@ -218,17 +218,11 @@ class Database(object):
 
     def delete_all(self, bind=None):
         """Delete all table content."""
-        if bind is None:
-            bind = self.engine
-        with bind.connect() as con:
-            trans = con.begin()
-            try:
-                for table in reversed(self.metadata.sorted_tables):
-                    con.execute(table.delete())
-                trans.commit()
-            except:
-                trans.rollback()
-                raise
+        tables = self.table_names
+        with self.no_fkc_session() as session:
+            for table in reversed(self.metadata.sorted_tables):
+                if table.name in tables:
+                    session.execute(table.delete())
 
     def close(self, **kwargs):
         """Proxy for Session.close"""

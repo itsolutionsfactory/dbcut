@@ -131,6 +131,18 @@ def do_cmd_test(database_yaml, cmd_name, *options):
         assert result.exit_code == 0
 
 
+def test_clear_mysql_to_mysql():
+    do_cmd_test(mysql_mysql_databases, "clear")
+
+
+def test_clear_mysql_to_sqlite():
+    do_cmd_test(mysql_sqlite_databases, "clear")
+
+
+def test_clear_mysql_to_postgres():
+    do_cmd_test(mysql_postgres_databases, "clear")
+
+
 def test_load_mysql_to_mysql():
     do_cmd_test(mysql_mysql_databases, "load")
 
@@ -189,18 +201,6 @@ def test_flush_mysql_to_sqlite():
 
 def test_flush_mysql_to_postgres():
     do_cmd_test(mysql_postgres_databases, "flush")
-
-
-def test_clear_mysql_to_mysql():
-    do_cmd_test(mysql_mysql_databases, "clear")
-
-
-def test_clear_mysql_to_sqlite():
-    do_cmd_test(mysql_sqlite_databases, "clear")
-
-
-def test_clear_mysql_to_postgres():
-    do_cmd_test(mysql_postgres_databases, "clear")
 
 
 def test_loading_cache():
