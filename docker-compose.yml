@@ -6,11 +6,10 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: make test
     environment:
-      - DB_PASSWORD
-      - DB_NAME
-      - DB_USER
+      - DB_PASSWORD=dbcuttest
+      - DB_NAME=dbcuttest
+      - DB_USER=dbcuttest
       - MYSQL_DATABASE_WITH_DATA=testmysql_with_data
       - MYSQL_DATABASE_WITHOUT_DATA=testmysql_without_data
       - POSTGRES_DATABASE_WITHOUT_DATA=testpostgres_without_data
