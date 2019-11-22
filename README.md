@@ -269,5 +269,3 @@ $ sqlite3 small-dev-database.db  <<<"SELECT * FROM permission"
 Indeed, we filter the roles based on a value from the permission table, but we do retrieved all permissions associated to this role.
 
 In the above example, it makes sense that the admin role has all permissions.
-
-If you want more detailed examples, please take a look at the files in the `./demo` directory.
