@@ -96,10 +96,10 @@ bumpversion:  ## Bump the release version
 newversion:  ## Set the new development version
 	@python scripts/bumpversion.py newversion $(filter-out $@,$(MAKECMDGOALS))
 
-docker-test:  ## Build docker images
+docker-test:  ## Run tests on default env with docker
 	@bash scripts/run-test-with-docker.sh
 
-docker-all-test:  ## Build docker images
+docker-all-test:  ## Run tests on all env with docker
 	@bash scripts/run-all-test-with-docker.sh
 
 %:
