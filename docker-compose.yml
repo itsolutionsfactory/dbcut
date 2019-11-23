@@ -1,51 +1,45 @@
-version: '2'
+version: '3.7'
+
+x-default-service: &defaults
+  restart: unless-stopped
+  environment:
+    MYSQL_HOST: mysql_test
+    POSTGRES_HOST: postgres_test
+
+    SQLITE_DB: dbcuttest.sqlite
+
+    POSTGRES_PASSWORD: dbcuttest
+    POSTGRES_DB: dbcuttest
+    POSTGRES_DB_2: dbcuttest_2
+    POSTGRES_USER: dbcuttest
+
+    MYSQL_ROOT_PASSWORD: dbcuttest
+    MYSQL_PASSWORD: dbcuttest
+    MYSQL_DATABASE: dbcuttest
+    MYSQL_DATABASE_2: dbcuttest_2
+    MYSQL_USER: dbcuttest
 
 services:
 
   dbcut_app:
+    <<: *defaults
     build:
       context: .
       dockerfile: docker/Dockerfile
-    environment:
-      - DB_PASSWORD=dbcuttest
-      - DB_NAME=dbcuttest
-      - DB_USER=dbcuttest
-      - MYSQL_DATABASE_WITH_DATA=testmysql_with_data
-      - MYSQL_DATABASE_WITHOUT_DATA=testmysql_without_data
-      - POSTGRES_DATABASE_WITHOUT_DATA=testpostgres_without_data
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.6}
     depends_on:
-      - testmysql_with_data
-      - testmysql_without_data
-      - testpostgres_without_data
+      - mysql_test
+      - postgres_test
     volumes:
       - .:/app
-    restart: unless-stopped
 
-  testmysql_with_data:
-    image: mariadb:10.3
-    environment:
-      - MYSQL_ROOT_PASSWORD=$DB_PASSWORD
-      - MYSQL_PASSWORD=$DB_PASSWORD
-      - MYSQL_DATABASE=$DB_NAME
-      - MYSQL_USER=$DB_USER
+  mysql_test:
+    <<: *defaults
+    image: ${MYSQL_IMAGE:-mariadb:10.3}
     volumes:
-      - ./docker/testmysql_with_data/:/docker-entrypoint-initdb.d:ro
-    restart: unless-stopped
+      - ./docker/mysql_test/:/docker-entrypoint-initdb.d:ro
 
-  testmysql_without_data:
-    image: mariadb:10.3
-    environment:
-      - MYSQL_ROOT_PASSWORD=$DB_PASSWORD
-      - MYSQL_PASSWORD=$DB_PASSWORD
-      - MYSQL_DATABASE=$DB_NAME
-      - MYSQL_USER=$DB_USER
-    restart: unless-stopped
-
-  testpostgres_without_data:
-    image: postgres:9
-    hostname: postgres
-    environment:
-      - POSTGRES_PASSWORD=$DB_PASSWORD
-      - POSTGRES_DB=$DB_NAME
-      - POSTGRES_USER=$DB_USER
-    restart: unless-stopped
+  postgres_test:
+    <<: *defaults
+    image: ${POSTGRES_IMAGE:-postgres:9.5}

@@ -30,7 +30,7 @@ help:  ## This help dialog.
 
 init:  ## Install the project in development mode (using virtualenv is highly recommended)
 	pip install -U setuptools pip
-	pip install -e .[mysql,postgresql,profiler]
+	pip install -e .[mysql,postgresql,profiler,test,dev]
 
 clean: clean-build clean-pyc clean-test  ## Remove all build, test, coverage and Python artifacts
 
@@ -93,15 +93,14 @@ bumpversion:  ## Bump the release version
 newversion:  ## Set the new development version
 	@python scripts/bumpversion.py newversion $(filter-out $@,$(MAKECMDGOALS))
 
-docker-test:  ## Run tests on docker containers
-	docker-compose run --rm dbcut_app make test
-
 docker-build:  ## Build docker images
 	docker-compose build
 
-docker-cleanup:  ## Build docker images
-	docker-compose down -v --remove-orphans --rmi local
+docker-down:  ## Build docker images
+	docker-compose down -v --remove-orphans
 
+docker-test: docker-down  ## Run tests on docker containers
+	docker-compose run --rm dbcut_app make test
 
 %:
 	@:

@@ -1,7 +1,11 @@
-FROM python:3.6
+ARG PYTHON_IMAGE
 
-ENV PYTHONUNBUFFERED 1
-ENV PATH=/venv/bin:$PATH PYTHONPATH=${PYTHONPATH}:/app
+FROM $PYTHON_IMAGE
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONBYTECODEBASE=/tmp/python \
+    PATH=/venv/bin:$PATH \
+    PYTHONPATH=${PYTHONPATH}:/app
 
 ADD docker/entrypoint.sh /docker-entrypoint.sh
 ADD docker/wait-for-it.sh /usr/local/bin/wait-for-it

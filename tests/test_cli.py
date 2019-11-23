@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import os
-
 from click.testing import CliRunner
 from dbcut.cli.main import main
 
@@ -72,38 +70,20 @@ queries:
 
 mysql_mysql_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
+  source_uri: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}
+  destination_uri: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE_2}
 """
 
 mysql_sqlite_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: sqlite:///test-db.db
+  source_uri: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}
+  destination_uri: sqlite:///${SQLITE_DB}
 """
 
 mysql_postgres_databases = """
 databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@${POSTGRES_DATABASE_WITHOUT_DATA}/${DB_NAME}
-"""
-
-mysql_mysql_databases = """
-databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
-"""
-
-mysql_sqlite_databases = """
-databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: sqlite:///test-db.db
-"""
-
-mysql_postgres_databases = """
-databases:
-  source_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: postgresql://${DB_USER}:${DB_PASSWORD}@${POSTGRES_DATABASE_WITHOUT_DATA}/${DB_NAME}
+  source_uri: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}
+  destination_uri: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB_2}
 """
 
 
@@ -235,16 +215,16 @@ def test_expand_env_variables():
     runner = CliRunner()
     mysql_mysql_databases = """
 databases:
-  source_uri: mysql://${XXXDB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITH_DATA}/${DB_NAME}
-  destination_uri: mysql://${DB_USER}:${DB_PASSWORD}@${MYSQL_DATABASE_WITHOUT_DATA}/${DB_NAME}
+
+  source_uri: mysql://${XXXMYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}
+  destination_uri: sqlite:///${SQLITE_DB}
 """
     with runner.isolated_filesystem():
         with open("dbcut.yml", "w") as f:
             f.write(mysql_mysql_databases)
             f.write(DEFAULT_YML)
 
-        del os.environ["DB_USER"]
         result = runner.invoke(main, ["-y", "load"])
         assert not result.exit_code == 0
         print(result.output)
-        assert "XXXDB_USER" in result.output
+        assert "XXXMYSQL_USER" in result.output

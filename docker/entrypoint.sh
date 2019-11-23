@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
+set -e
 
-wait-for-it testmysql_with_data:3306
-wait-for-it testmysql_without_data:3306
-wait-for-it testpostgres_without_data:5432
+wait-for-it ${MYSQL_HOST}:3306
+wait-for-it ${POSTGRES_HOST}:5432
 
 "$@"
