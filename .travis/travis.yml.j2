@@ -1,0 +1,18 @@
+language: minimal
+
+services:
+  - docker
+
+env:
+{% for env in env_list -%}
+  - {{ env }}
+{% endfor -%}
+
+before_script:
+  - make docker-build
+
+script:
+  - make docker-test
+
+after_script:
+  - make docker-cleanup
