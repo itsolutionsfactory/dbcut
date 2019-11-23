@@ -1,16 +1,17 @@
-sudo: required
+language: minimal
 
 services:
   - docker
 
 env:
-  DOCKER_COMPOSE_VERSION: 1.23.2
-
-before_install:
-  - sudo rm /usr/local/bin/docker-compose
-  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-  - chmod +x docker-compose
-  - sudo mv docker-compose /usr/local/bin
+  - PYTHON_IMAGE:
+    - python:3.6
+  - POSTGRES_IMAGE:
+    - postgres:9.5
+    - postgres:9.6
+  - MYSQL_IMAGE:
+    - mariadb:10.1
+    - mariadb:10.3
 
 before_script:
   - make docker-build
