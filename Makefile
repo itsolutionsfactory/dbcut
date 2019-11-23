@@ -96,14 +96,11 @@ bumpversion:  ## Bump the release version
 newversion:  ## Set the new development version
 	@python scripts/bumpversion.py newversion $(filter-out $@,$(MAKECMDGOALS))
 
-docker-build:  ## Build docker images
-	docker-compose build
+docker-test:  ## Build docker images
+	@bash scripts/run-test-with-docker.sh
 
-docker-down:  ## Build docker images
-	docker-compose down -v --remove-orphans
-
-docker-test: docker-down  ## Run tests on docker containers
-	docker-compose run --rm dbcut_app make test
+docker-all-test:  ## Build docker images
+	@bash scripts/run-all-test-with-docker.sh
 
 %:
 	@:
