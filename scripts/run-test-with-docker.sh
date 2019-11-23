@@ -17,7 +17,7 @@ cd $ROOT_PROJECT
 
 
 set -e
-# docker-compose build
+docker-compose build
 docker-compose down -v --remove-orphans 2> /dev/null
 docker-compose run --rm dbcut_app make test
 docker-compose down -v --remove-orphans 2> /dev/null

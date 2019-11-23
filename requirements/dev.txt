@@ -1,0 +1,6 @@
+bumpversion
+flake8
+jedi
+pdbpp
+twine
+wheel

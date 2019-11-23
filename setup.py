@@ -14,6 +14,9 @@ def read(fname):
         return fd.read()
 
 
+def get_requirements(basename):
+    return read("requirements/{}.txt".format(basename)).strip().split('\n')
+
 readme = read("README.md")
 changelog = read("CHANGES.md")
 
@@ -27,6 +30,8 @@ version = re.search(
 if not version:
     raise RuntimeError("Cannot find version information")
 
+extras_require = {key: get_requirements(key) for key in ["mysql", "postgresql", "profiler", "fastjson", "dev", "test"]}
+
 setup(
     name="dbcut",
     author="Salem Harrache",
@@ -36,25 +41,8 @@ setup(
     url="https://github.com/itsolutionsfactory/dbcut",
     package_dir={"dbcut": "dbcut"},
     packages=find_packages(),
-    install_requires=[
-        "SQLAlchemy",
-        "SQLAlchemy-Utils",
-        "mlalchemy",
-        "marshmallow-sqlalchemy",
-        "python-dotenv",
-        "tabulate",
-        "tqdm",
-        "pptree",
-        "Click",
-    ],
-    extras_require={
-        "mysql": ["mysqlclient"],
-        "postgresql": ["psycopg2"],
-        "profiler": ["sqlalchemy-easy-profile", "sqlparse"],
-        "fastjson": [],
-        "dev": ["jedi", "pdbpp", "bumpversion", "flake8", "wheel", "twine"],
-        "test": ["tox", "pytest", "pytest-cov", "pytest-sugar", "coverage"],
-    },
+    install_requires=get_requirements('base'),
+    extras_require=extras_require,
     include_package_data=True,
     zip_safe=False,
     description="Extract a lightweight subset of your production DB for development and testing purpose.",
