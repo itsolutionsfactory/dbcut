@@ -153,97 +153,22 @@ class BaseQuery(Query):
         models_to_load = dict(models_to_browse)
 
         relations_to_load = []
-
-        def get_relationship_path(relationship):
-            local_table_name = relationship.parent.class_._table_info["table_name"]
-            if relationship.direction is interfaces.ONETOMANY:
-                key = relationship.key
-            else:
-                key = list(relationship.local_columns)[0].name
-            return "{}.{}".format(local_table_name, key)
-
-        def get_relationship_reverse_path(relationship):
-            remote_table_name = relationship.target.name
-            if relationship.direction is interfaces.ONETOMANY:
-                key = list(relationship.remote_side)[0].name
-            else:
-                key = relationship.back_populates
-            return "{}.{}".format(remote_table_name, key)
-
-        def get_relationships_path(relationships):
-            path = [get_relationship_path(r) for r in relationships]
-            return path + [get_relationship_reverse_path(r) for r in relationships]
-
-        def breadth_first_walk_and_unload_generator(
-            root_node,
-            model,
-            path=[],
-            already_seen_relationships=[],
-            already_browse_models=[],
-            join_depth=max_join_depth,
-            backref_depth=max_backref_depth,
-        ):
-            next_models = []
-            already_seen_relationships_path = get_relationships_path(
-                already_seen_relationships
-            )
-            model_name = model.__name__
-            if model_name in models_to_load and model_name not in already_browse_models:
-                for relationship in get_relationships(model):
-                    if relationship.target.name in models_to_browse:
-                        relationship_path = get_relationship_path(relationship)
-                        next_path = path + [relationship.key]
-                        full_path = ".".join(next_path)
-                        target_model = models_to_browse[relationship.target.name]
-                        if relationship_path not in already_seen_relationships_path:
-                            if (
-                                relationship.direction is interfaces.ONETOMANY
-                                and (backref_depth is None or backref_depth > 0)
-                            ) or (
-                                relationship.direction is interfaces.MANYTOONE
-                                and (join_depth is None or join_depth > 0)
-                            ):
-                                relations_to_load.append((relationship, full_path))
-                                next_models.append(
-                                    (target_model, next_path, relationship)
-                                )
-
-            join_depth = (
-                max(0, join_depth - 1) if join_depth is not None else join_depth
-            )
-            backref_depth = (
-                max(0, backref_depth - 1)
-                if backref_depth is not None
-                else backref_depth
-            )
-            nodes = []
-            for next_model, next_path, relationship in next_models:
-
-                next_node = RelationTree(next_model.__name__, root_node, relationship)
-
-                gen = breadth_first_walk_and_unload_generator(
-                    next_node,
-                    next_model,
-                    next_path,
-                    already_seen_relationships + [relationship],
-                    already_browse_models + [model_name],
-                    join_depth,
-                    backref_depth,
-                )
-                nodes.append({"generator": gen, "stop_iteration": False})
-
-            yield
-
-            while not all(node["stop_iteration"] for node in nodes):
-                for node in nodes:
-                    if not node["stop_iteration"]:
-                        try:
-                            yield next(node["generator"])
-                        except StopIteration:
-                            node["stop_iteration"] = True
-
         root_node = RelationTree(self.model_class.__name__)
-        list(breadth_first_walk_and_unload_generator(root_node, self.model_class))
+
+        list(
+            breadth_first_load_generator(
+                relations_to_load,
+                root_node,
+                self.model_class,
+                models_to_load,
+                models_to_browse,
+                max_join_depth,
+                max_backref_depth,
+                [],
+                [],
+                [],
+            )
+        )
 
         if include:
 
@@ -409,3 +334,93 @@ class RelationTree:
 def get_relationships(model):
     values = model.__mapper__.relationships.values()
     return sorted(values, key=lambda r: (r.direction is interfaces.MANYTOONE, r.key))
+
+
+def get_relationship_path(relationship):
+    local_table_name = relationship.parent.class_._table_info["table_name"]
+    if relationship.direction is interfaces.ONETOMANY:
+        key = relationship.key
+    else:
+        key = list(relationship.local_columns)[0].name
+    return "{}.{}".format(local_table_name, key)
+
+
+def get_relationship_reverse_path(relationship):
+    remote_table_name = relationship.target.name
+    if relationship.direction is interfaces.ONETOMANY:
+        key = list(relationship.remote_side)[0].name
+    else:
+        key = relationship.back_populates
+    return "{}.{}".format(remote_table_name, key)
+
+
+def get_relationships_path(relationships):
+    path = [get_relationship_path(r) for r in relationships]
+    return path + [get_relationship_reverse_path(r) for r in relationships]
+
+
+def breadth_first_load_generator(
+    relations_to_load,
+    root_node,
+    model,
+    models_to_load,
+    models_to_browse,
+    join_depth,
+    backref_depth,
+    path,
+    already_seen_relationships,
+    already_browse_models,
+):
+    next_models = []
+    already_seen_relationships_path = get_relationships_path(already_seen_relationships)
+    model_name = model.__name__
+    if model_name in models_to_load and model_name not in already_browse_models:
+        for relationship in get_relationships(model):
+            if relationship.target.name in models_to_browse:
+                relationship_path = get_relationship_path(relationship)
+                next_path = path + [relationship.key]
+                full_path = ".".join(next_path)
+                target_model = models_to_browse[relationship.target.name]
+                if relationship_path not in already_seen_relationships_path:
+                    if (
+                        relationship.direction is interfaces.ONETOMANY
+                        and (backref_depth is None or backref_depth > 0)
+                    ) or (
+                        relationship.direction is interfaces.MANYTOONE
+                        and (join_depth is None or join_depth > 0)
+                    ):
+                        relations_to_load.append((relationship, full_path))
+                        next_models.append((target_model, next_path, relationship))
+
+    join_depth = max(0, join_depth - 1) if join_depth is not None else join_depth
+    backref_depth = (
+        max(0, backref_depth - 1) if backref_depth is not None else backref_depth
+    )
+    nodes = []
+    for next_model, next_path, relationship in next_models:
+
+        next_node = RelationTree(next_model.__name__, root_node, relationship)
+
+        gen = breadth_first_load_generator(
+            relations_to_load,
+            next_node,
+            next_model,
+            models_to_load,
+            models_to_browse,
+            join_depth,
+            backref_depth,
+            next_path,
+            already_seen_relationships + [relationship],
+            already_browse_models + [model_name],
+        )
+        nodes.append({"generator": gen, "stop_iteration": False})
+
+    yield
+
+    while not all(node["stop_iteration"] for node in nodes):
+        for node in nodes:
+            if not node["stop_iteration"]:
+                try:
+                    yield next(node["generator"])
+                except StopIteration:
+                    node["stop_iteration"] = True
