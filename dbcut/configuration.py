@@ -20,7 +20,7 @@ DEFAULT_CONFIG = {
     "log_format": "[%(levelname)8s] [%(asctime)s] [%(name)s]: %(message)s",
     "default_limit": 10,
     "default_backref_limit": 10,
-    "default_backref_depth": 5,
+    "default_backref_depth": 2,
     "default_join_depth": 5,
     "global_exclude": [],
 }
