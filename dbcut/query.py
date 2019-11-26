@@ -392,6 +392,9 @@ def breadth_first_load_generator(
                         relations_to_load.append((relationship, full_path))
                         next_models.append((target_model, next_path, relationship))
 
+            already_seen_relationships.append(relationship)
+        already_browse_models.append(model_name)
+
     join_depth = max(0, join_depth - 1) if join_depth is not None else join_depth
     backref_depth = (
         max(0, backref_depth - 1) if backref_depth is not None else backref_depth
@@ -412,8 +415,9 @@ def breadth_first_load_generator(
             join_depth,
             backref_depth,
             next_path,
-            already_seen_relationships + [relationship],
-            already_browse_models + [model_name],
+            next_weight,
+            already_seen_relationships,
+            already_browse_models,
         )
         nodes.append({"generator": gen, "stop_iteration": False})
 
