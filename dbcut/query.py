@@ -385,6 +385,7 @@ def breadth_first_load_generator(
                     if (
                         relationship.direction is interfaces.ONETOMANY
                         and (backref_depth is None or backref_depth > 0)
+                        and relationship.target.name not in already_browse_models
                     ) or (
                         relationship.direction is interfaces.MANYTOONE
                         and (join_depth is None or join_depth > 0)
