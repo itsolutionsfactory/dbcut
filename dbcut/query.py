@@ -397,8 +397,10 @@ def breadth_first_load_generator(
         max(0, backref_depth - 1) if backref_depth is not None else backref_depth
     )
     nodes = []
-    for next_model, next_path, relationship in next_models:
 
+    for next_model, next_path, relationship, next_weight in sorted(
+        next_models, key=lambda x: x[2].direction is not interfaces.MANYTOONE
+    ):
         next_node = RelationTree(next_model.__name__, root_node, relationship)
 
         gen = breadth_first_load_generator(
