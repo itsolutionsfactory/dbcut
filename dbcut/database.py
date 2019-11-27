@@ -22,8 +22,13 @@ from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, create_directory,
-                    generate_valid_index_name, to_unicode)
+from .utils import (
+    aslist,
+    cached_property,
+    create_directory,
+    generate_valid_index_name,
+    to_unicode,
+)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -170,10 +175,11 @@ class Database(object):
                 self.Model.prepare(bind)
             else:
                 self.Model.prepare(
-                    bind, reflect=True,
+                    bind,
+                    reflect=True,
                     name_for_scalar_relationship=self._name_for_scalar_relationship,
                     name_for_collection_relationship=self._name_for_collection_relationship,
-                    generate_relationship=self._gen_relationship
+                    generate_relationship=self._gen_relationship,
                 )
 
                 for table in self.tables.values():
@@ -334,16 +340,18 @@ class Database(object):
         name = referred_cls.__name__.lower()
         try:
             column_name = list(constraint.columns)[0].name
-            name = column_name.strip('_id')
+            name = column_name.strip("_id")
         except:
             pass
         return name
 
-    def _name_for_collection_relationship(self, base, local_cls, referred_cls, constraint):
+    def _name_for_collection_relationship(
+        self, base, local_cls, referred_cls, constraint
+    ):
         referred_cls_name = referred_cls.__name__.lower()
         try:
             column_name = list(constraint.columns)[0].name
-            name = column_name.strip('_id') + "_" + referred_cls_name + "_collection"
+            name = column_name.strip("_id") + "_" + referred_cls_name + "_collection"
         except:
             name = referred_cls_name + "_collection"
         return name

@@ -10,12 +10,12 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(fname):
-    with open(os.path.join(HERE, '..', fname), "r") as fd:
+    with open(os.path.join(HERE, "..", fname), "r") as fd:
         return fd.read()
 
 
 def write(content, fname):
-    with open(os.path.join(HERE, '..', fname), "w") as fd:
+    with open(os.path.join(HERE, "..", fname), "w") as fd:
         fd.write(content)
 
 
@@ -31,6 +31,7 @@ def generate_travis_config():
     env_list = [" ".join(t) for t in itertools.product(*iterables)]
 
     write(Template(template_content).render(env_list=env_list), ".travis.yml")
+
 
 if __name__ == "__main__":
     generate_travis_config()
