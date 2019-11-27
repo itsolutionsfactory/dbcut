@@ -159,7 +159,7 @@ def main():
 
     parser = ArgumentParser(prog="bumpversion", description="Bumpversion wrapper")
 
-    default_changelog = os.path.join(os.getcwd(), "CHANGES.md")
+    default_changelog = os.path.join(os.getcwd(), "CHANGES.rst")
 
     subparsers = parser.add_subparsers(title="bumpversion wrapper commands")
     # release command

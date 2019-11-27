@@ -17,8 +17,9 @@ def read(fname):
 def get_requirements(basename):
     return read("requirements/{}.txt".format(basename)).strip().split('\n')
 
-readme = read("README.md")
-changelog = read("CHANGES.md")
+
+readme = read("README.rst")
+changelog = read("CHANGES.rst")
 
 version = ""
 version = re.search(
