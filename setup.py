@@ -45,6 +45,7 @@ setup(
     install_requires=get_requirements('base'),
     extras_require=extras_require,
     include_package_data=True,
+    license="MIT license",
     zip_safe=False,
     description="Extract a lightweight subset of your relational production database for development and testing purpose.",
     long_description=readme + "\n\n" + changelog,
@@ -52,6 +53,7 @@ setup(
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
