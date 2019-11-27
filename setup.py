@@ -45,7 +45,7 @@ setup(
     extras_require=extras_require,
     include_package_data=True,
     zip_safe=False,
-    description="Extract a lightweight subset of your production DB for development and testing purpose.",
+    description="Extract a lightweight subset of your relational production database for development and testing purpose.",
     long_description=readme + "\n\n" + changelog,
     keywords="dbcut",
     classifiers=[
