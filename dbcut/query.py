@@ -165,6 +165,7 @@ class BaseQuery(Query):
                 max_join_depth,
                 max_backref_depth,
                 [],
+                1,
                 [],
                 [],
             )
@@ -175,10 +176,11 @@ class BaseQuery(Query):
             def get_direct_path(target_name):
                 direct_paths = []
                 leaf_relationship = None
-                relations = sorted(relations_to_load, key=lambda x: x[1])
-                for relationship, path in relations:
+                relations = sorted(relations_to_load, key=lambda x: x[2])
+                for relationship, path, weight in relations:
                     if relationship.target.name == target_name:
-                        leaf_relationship = (relationship, path)
+                        leaf_relationship = (relationship, path, weight)
+                        print(leaf_relationship)
                         break
                 if leaf_relationship is None:
                     return []
@@ -186,9 +188,9 @@ class BaseQuery(Query):
                 other_relations = sorted(
                     list(set(relations) - set([leaf_relationship])), key=lambda x: x[1]
                 )
-                for relationship, path in other_relations:
+                for relationship, path, weight in other_relations:
                     if path in leaf_relationship[1]:
-                        direct_paths.append(tuple([relationship, path]))
+                        direct_paths.append(tuple([relationship, path, weight]))
 
                 return direct_paths
 
@@ -210,9 +212,9 @@ class BaseQuery(Query):
                     leaf_relationships.append(direct_paths[0])
                     new_relations_to_load.extend(get_direct_path(target_name))
             relations_to_load = new_relations_to_load
-            cut_relation_tree([r for r, p in relations_to_load], root_node)
+            cut_relation_tree([r for r, p, w in relations_to_load], root_node)
 
-            for _, leaf_path in leaf_relationships:
+            for _, leaf_path, _ in leaf_relationships:
                 query = query.join(*leaf_path.split("."), isouter=True)
 
             if leaf_relationships:
@@ -220,7 +222,7 @@ class BaseQuery(Query):
 
         query.relation_tree = root_node
 
-        for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
+        for relationship, path, weight in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
                 query = query.options(selectinload(path))
             elif relationship.direction is interfaces.MANYTOONE:
@@ -287,11 +289,12 @@ def render_query(query, reindent=True):
         return raw_sql
 
 
-class RelationTree:
-    def __init__(self, name, parent=None, relationship=None):
+class RelationTree(object):
+    def __init__(self, name, parent=None, relationship=None, weight=1):
         self.name = name
         self.parent = parent
         self.relationship = relationship
+        self.weight = weight
         self.children = []
 
         if relationship is not None:
@@ -368,6 +371,7 @@ def breadth_first_load_generator(
     join_depth,
     backref_depth,
     path,
+    weight,
     already_seen_relationships,
     already_browse_models,
 ):
@@ -390,9 +394,15 @@ def breadth_first_load_generator(
                         relationship.direction is interfaces.MANYTOONE
                         and (join_depth is None or join_depth > 0)
                     ):
-                        relations_to_load.append((relationship, full_path))
-                        next_models.append((target_model, next_path, relationship))
+                        if relationship.direction is interfaces.ONETOMANY:
+                            next_weight = weight * 2
+                        else:
+                            next_weight = weight * 1
 
+                        relations_to_load.append((relationship, full_path, next_weight))
+                        next_models.append(
+                            (target_model, next_path, relationship, next_weight)
+                        )
             already_seen_relationships.append(relationship)
         already_browse_models.append(model_name)
 
@@ -403,10 +413,11 @@ def breadth_first_load_generator(
     nodes = []
 
     for next_model, next_path, relationship, next_weight in sorted(
-        next_models, key=lambda x: x[2].direction is not interfaces.MANYTOONE
+        next_models, key=lambda x: x[3]
     ):
-        next_node = RelationTree(next_model.__name__, root_node, relationship)
-
+        next_node = RelationTree(
+            next_model.__name__, root_node, relationship, next_weight
+        )
         gen = breadth_first_load_generator(
             relations_to_load,
             next_node,
