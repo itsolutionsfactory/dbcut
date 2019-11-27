@@ -406,6 +406,7 @@ def breadth_first_load_generator(
                         next_models.append(
                             (target_model, next_path, relationship, next_weight)
                         )
+            already_seen_relationships.append(relationship)
             yield relationship
         already_browse_models.append(model_name)
 
@@ -431,7 +432,7 @@ def breadth_first_load_generator(
             backref_depth,
             next_path,
             next_weight,
-            already_seen_relationships + [relationship],
+            already_seen_relationships,
             already_browse_models,
         )
         nodes.append({"generator": gen, "stop_iteration": False})
