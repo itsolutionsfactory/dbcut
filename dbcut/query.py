@@ -8,7 +8,8 @@ import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import Query, class_mapper, interfaces, joinedload, selectinload
+from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
+                            selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.query import Bundle
 from sqlalchemy.orm.session import make_transient
@@ -362,6 +363,9 @@ def get_relationships_path(relationships):
     return path + [get_relationship_reverse_path(r) for r in relationships]
 
 
+STOP_BREADTH_FIRST_LOAD_GENERATOR = object()
+
+
 def breadth_first_load_generator(
     relations_to_load,
     root_node,
@@ -379,7 +383,7 @@ def breadth_first_load_generator(
     already_seen_relationships_path = get_relationships_path(already_seen_relationships)
     model_name = model.__name__
     if model_name in models_to_load and model_name not in already_browse_models:
-        for relationship in get_relationships(model):
+        for relationship in get_manytoone_relationships_first(model):
             if relationship.target.name in models_to_browse:
                 relationship_path = get_relationship_path(relationship)
                 next_path = path + [relationship.key]
@@ -404,6 +408,7 @@ def breadth_first_load_generator(
                             (target_model, next_path, relationship, next_weight)
                         )
             already_seen_relationships.append(relationship)
+            yield relationship
         already_browse_models.append(model_name)
 
     join_depth = max(0, join_depth - 1) if join_depth is not None else join_depth
@@ -435,10 +440,29 @@ def breadth_first_load_generator(
 
     yield
 
+    for node in nodes:
+        next(node["generator"])
+
+    yield
+
     while not all(node["stop_iteration"] for node in nodes):
         for node in nodes:
             if not node["stop_iteration"]:
-                try:
-                    yield next(node["generator"])
-                except StopIteration:
-                    node["stop_iteration"] = True
+                for value in node["generator"]:
+                    if value is STOP_BREADTH_FIRST_LOAD_GENERATOR:
+                        node["stop_iteration"] = True
+                        break
+                    if value is None:
+                        break
+        yield
+
+    yield STOP_BREADTH_FIRST_LOAD_GENERATOR
+
+
+def get_manytoone_relationships_first(model):
+    def key(relationship):
+        if relationship.direction is interfaces.MANYTOONE:
+            return 0
+        return 1
+
+    return sorted(model.__mapper__.relationships.values(), key=key)
