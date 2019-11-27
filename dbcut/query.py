@@ -181,7 +181,6 @@ class BaseQuery(Query):
                 for relationship, path, weight in relations:
                     if relationship.target.name == target_name:
                         leaf_relationship = (relationship, path, weight)
-                        print(leaf_relationship)
                         break
                 if leaf_relationship is None:
                     return []
