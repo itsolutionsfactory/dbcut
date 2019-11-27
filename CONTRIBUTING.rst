@@ -77,9 +77,7 @@ Ready to contribute? Here's how to set up `dbcut` for local development.
 5. When you're done making changes, check that your changes pass the tests, including testing other Python and database versions with docker::
 
     $ make docker-test
-
-or::
-
+    or
     $ make docker-all-test
 
 
