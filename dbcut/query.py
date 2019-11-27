@@ -141,46 +141,80 @@ class BaseQuery(Query):
         self, max_join_depth, max_backref_depth, exclude, include
     ):
         query = self._clone()
-        models_to_exclude = [
-            self.session.db.models.get(table_name)
+        all_models = self.session.db.models
+        already_seen_models = [
+            all_models.get(table_name)
             for table_name in exclude
-            if table_name in self.session.db.models
+            if table_name in all_models
         ]
-        models_to_browse = {
-            k: v
-            for k, v in self.session.db.models.items()
-            if v not in models_to_exclude
-        }
-        models_to_load = dict(models_to_browse)
+        already_seen_models.append(self.model_class)
 
         relations_to_load = []
-        root_node = RelationTree(self.model_class.__name__)
 
-        list(
-            breadth_first_load_generator(
-                relations_to_load,
-                root_node,
-                self.model_class,
-                models_to_load,
-                models_to_browse,
-                max_join_depth,
-                max_backref_depth,
-                [],
-                1,
-                [],
-                [],
+        def breadth_first_walk_and_unload_generator(
+            root_node,
+            model,
+            path,
+            join_depth=max_join_depth,
+            backref_depth=max_backref_depth,
+        ):
+            next_models = []
+            for relationship in get_relationships(model):
+                next_path = path + [relationship.key]
+                full_path = ".".join(next_path)
+                if relationship.target.name in all_models:
+                    target_model = all_models[relationship.target.name]
+                    if target_model not in already_seen_models:
+                        if (
+                            relationship.direction is interfaces.ONETOMANY
+                            and (backref_depth is None or backref_depth > 0)
+                        ) or (
+                            relationship.direction is interfaces.MANYTOONE
+                            and (join_depth is None or join_depth > 0)
+                        ):
+                            relations_to_load.append((relationship, full_path))
+                            next_models.append((target_model, next_path, relationship))
+                        already_seen_models.append(target_model)
+            join_depth = (
+                max(0, join_depth - 1) if join_depth is not None else join_depth
             )
-        )
+            backref_depth = (
+                max(0, backref_depth - 1)
+                if backref_depth is not None
+                else backref_depth
+            )
+            nodes = []
+            for next_model, next_path, relationship in next_models:
+
+                next_node = RelationTree(next_model.__name__, root_node, relationship)
+
+                gen = breadth_first_walk_and_unload_generator(
+                    next_node, next_model, next_path, join_depth, backref_depth
+                )
+                nodes.append({"generator": gen, "stop_iteration": False})
+
+            yield
+
+            while not all(node["stop_iteration"] for node in nodes):
+                for node in nodes:
+                    if not node["stop_iteration"]:
+                        try:
+                            yield next(node["generator"])
+                        except StopIteration:
+                            node["stop_iteration"] = True
+
+        root_node = RelationTree(self.model_class.__name__)
+        list(breadth_first_walk_and_unload_generator(root_node, self.model_class, []))
 
         if include:
 
             def get_direct_path(target_name):
                 direct_paths = []
                 leaf_relationship = None
-                relations = sorted(relations_to_load, key=lambda x: x[2])
-                for relationship, path, weight in relations:
+                relations = sorted(relations_to_load, key=lambda x: x[1])
+                for relationship, path in relations:
                     if relationship.target.name == target_name:
-                        leaf_relationship = (relationship, path, weight)
+                        leaf_relationship = (relationship, path)
                         break
                 if leaf_relationship is None:
                     return []
@@ -188,9 +222,9 @@ class BaseQuery(Query):
                 other_relations = sorted(
                     list(set(relations) - set([leaf_relationship])), key=lambda x: x[1]
                 )
-                for relationship, path, weight in other_relations:
+                for relationship, path in other_relations:
                     if path in leaf_relationship[1]:
-                        direct_paths.append(tuple([relationship, path, weight]))
+                        direct_paths.append(tuple([relationship, path]))
 
                 return direct_paths
 
@@ -212,9 +246,9 @@ class BaseQuery(Query):
                     leaf_relationships.append(direct_paths[0])
                     new_relations_to_load.extend(get_direct_path(target_name))
             relations_to_load = new_relations_to_load
-            cut_relation_tree([r for r, p, w in relations_to_load], root_node)
+            cut_relation_tree([r for r, p in relations_to_load], root_node)
 
-            for _, leaf_path, _ in leaf_relationships:
+            for _, leaf_path in leaf_relationships:
                 query = query.join(*leaf_path.split("."), isouter=True)
 
             if leaf_relationships:
@@ -222,7 +256,7 @@ class BaseQuery(Query):
 
         query.relation_tree = root_node
 
-        for relationship, path, weight in sorted(relations_to_load, key=lambda x: x[1]):
+        for relationship, path in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
                 query = query.options(selectinload(path))
             elif relationship.direction is interfaces.MANYTOONE:
@@ -289,12 +323,11 @@ def render_query(query, reindent=True):
         return raw_sql
 
 
-class RelationTree(object):
-    def __init__(self, name, parent=None, relationship=None, weight=1):
+class RelationTree:
+    def __init__(self, name, parent=None, relationship=None):
         self.name = name
         self.parent = parent
         self.relationship = relationship
-        self.weight = weight
         self.children = []
 
         if relationship is not None:
@@ -337,131 +370,3 @@ class RelationTree(object):
 def get_relationships(model):
     values = model.__mapper__.relationships.values()
     return sorted(values, key=lambda r: (r.direction is interfaces.MANYTOONE, r.key))
-
-
-def get_relationship_path(relationship):
-    local_table_name = relationship.parent.class_._table_info["table_name"]
-    if relationship.direction is interfaces.ONETOMANY:
-        key = relationship.key
-    else:
-        key = list(relationship.local_columns)[0].name
-    return "{}.{}".format(local_table_name, key)
-
-
-def get_relationship_reverse_path(relationship):
-    remote_table_name = relationship.target.name
-    if relationship.direction is interfaces.ONETOMANY:
-        key = list(relationship.remote_side)[0].name
-    else:
-        key = relationship.back_populates
-    return "{}.{}".format(remote_table_name, key)
-
-
-def get_relationships_path(relationships):
-    path = [get_relationship_path(r) for r in relationships]
-    return path + [get_relationship_reverse_path(r) for r in relationships]
-
-
-STOP_BREADTH_FIRST_LOAD_GENERATOR = object()
-
-
-def breadth_first_load_generator(
-    relations_to_load,
-    root_node,
-    model,
-    models_to_load,
-    models_to_browse,
-    join_depth,
-    backref_depth,
-    path,
-    weight,
-    already_seen_relationships,
-    already_browse_models,
-):
-    next_models = []
-    already_seen_relationships_path = get_relationships_path(already_seen_relationships)
-    model_name = model.__name__
-    if model_name in models_to_load and model_name not in already_browse_models:
-        for relationship in get_manytoone_relationships_first(model):
-            if relationship.target.name in models_to_browse:
-                relationship_path = get_relationship_path(relationship)
-                next_path = path + [relationship.key]
-                full_path = ".".join(next_path)
-                target_model = models_to_browse[relationship.target.name]
-                if relationship_path not in already_seen_relationships_path:
-                    if (
-                        relationship.direction is interfaces.ONETOMANY
-                        and (backref_depth is None or backref_depth > 0)
-                        and relationship.target.name not in already_browse_models
-                    ) or (
-                        relationship.direction is interfaces.MANYTOONE
-                        and (join_depth is None or join_depth > 0)
-                    ):
-                        if relationship.direction is interfaces.ONETOMANY:
-                            next_weight = weight * 2
-                        else:
-                            next_weight = weight * 1
-
-                        relations_to_load.append((relationship, full_path, next_weight))
-                        next_models.append(
-                            (target_model, next_path, relationship, next_weight)
-                        )
-            already_seen_relationships.append(relationship)
-            yield relationship
-        already_browse_models.append(model_name)
-
-    join_depth = max(0, join_depth - 1) if join_depth is not None else join_depth
-    backref_depth = (
-        max(0, backref_depth - 1) if backref_depth is not None else backref_depth
-    )
-    nodes = []
-
-    for next_model, next_path, relationship, next_weight in sorted(
-        next_models, key=lambda x: x[3]
-    ):
-        next_node = RelationTree(
-            next_model.__name__, root_node, relationship, next_weight
-        )
-        gen = breadth_first_load_generator(
-            relations_to_load,
-            next_node,
-            next_model,
-            models_to_load,
-            models_to_browse,
-            join_depth,
-            backref_depth,
-            next_path,
-            next_weight,
-            already_seen_relationships,
-            already_browse_models,
-        )
-        nodes.append({"generator": gen, "stop_iteration": False})
-
-    yield
-
-    for node in nodes:
-        next(node["generator"])
-
-    yield
-
-    while not all(node["stop_iteration"] for node in nodes):
-        for node in nodes:
-            if not node["stop_iteration"]:
-                for value in node["generator"]:
-                    if value is STOP_BREADTH_FIRST_LOAD_GENERATOR:
-                        node["stop_iteration"] = True
-                        break
-                    if value is None:
-                        break
-        yield
-
-    yield STOP_BREADTH_FIRST_LOAD_GENERATOR
-
-
-def get_manytoone_relationships_first(model):
-    def key(relationship):
-        if relationship.direction is interfaces.MANYTOONE:
-            return 0
-        return 1
-
-    return sorted(model.__mapper__.relationships.values(), key=key)
