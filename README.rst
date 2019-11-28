@@ -5,6 +5,10 @@ DBcut
 .. image:: https://img.shields.io/pypi/v/dbcut.svg
     :target: https://pypi.python.org/pypi/dbcut
 
+.. image:: https://travis-ci.org/itsolutionsfactory/dbcut.svg?branch=master
+    :target: https://travis-ci.org/itsolutionsfactory/dbcut
+    :alt: CI Status
+
 
 Extract a lightweight subset of your relational production database for development and testing purpose.
 
