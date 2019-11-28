@@ -8,27 +8,18 @@ import sys
 import threading
 from contextlib import contextmanager
 
-from marshmallow import fields, post_dump
-from marshmallow_sqlalchemy import ModelSchema
 from sqlalchemy import MetaData, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
-from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 
 from .configuration import DEFAULT_CONFIG
-from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (
-    aslist,
-    cached_property,
-    create_directory,
-    generate_valid_index_name,
-    to_unicode,
-)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -90,7 +81,6 @@ class Database(object):
 
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
-        event.listen(mapper, "after_configured", self._configure_serialization)
 
     @cached_property
     def cache_dir(self):
@@ -365,67 +355,6 @@ class Database(object):
             base, direction, return_fn, attrname, local_cls, referred_cls, **kw
         )
 
-    def _configure_serialization(self):
-        module_basename = ".".join(
-            self.__class__.__module__.split(".")[:-1] + ["marshmallow_schema"]
-        )
-
-        for class_ in self.models.values():
-
-            class Meta(object):
-                model = class_
-                transient = True
-                include_fk = True
-
-            attrs = {"Meta": Meta}
-            attrs["__module__"] = module_basename
-            schema_class_name = "%s_%s_marshmallow_schema" % (id(self), class_.__name__)
-
-            relationship_keys = class_.__mapper__.relationships.keys()
-
-            for keyname in relationship_keys:
-                relationship = class_.__mapper__.relationships[keyname]
-                target_name = relationship.target.name
-                if target_name in self.models:
-
-                    many = relationship.uselist
-
-                    target_schema_class_name = "%s_%s_marshmallow_schema" % (
-                        id(self),
-                        self.models[target_name].__name__,
-                    )
-                    target_schema_class_fullname = "%s.%s" % (
-                        attrs["__module__"],
-                        target_schema_class_name,
-                    )
-                    exclude_keys = []
-
-                    if target_name == class_.__name__:
-                        exclude_keys = [keyname, relationship.back_populates]
-                        attrs[keyname] = fields.Nested(
-                            "self",
-                            name=keyname,
-                            many=many,
-                            exclude=exclude_keys,
-                            default=None,
-                        )
-                    else:
-                        attrs[keyname] = fields.Nested(
-                            target_schema_class_fullname,
-                            name=keyname,
-                            many=many,
-                            exclude=exclude_keys,
-                        )
-
-            schema_class = type(schema_class_name, (BaseSchema,), attrs)
-            register_new_schema(schema_class)
-            setattr(class_, "__marshmallow__", schema_class)
-
-        for class_ in self.models.values():
-            for key, field in class_.__marshmallow__._declared_fields.items():
-                if field:
-                    field.allow_none = True
-
     def _echo_statement(self, stm):
         text = to_unicode(stm)
         text = re.sub(r";", ";\n", text)
@@ -472,20 +401,6 @@ class Database(object):
         if self.connector is not None:
             engine = self.engine
         return "<%s engine=%r>" % (self.__class__.__name__, engine)
-
-
-class BaseSchema(ModelSchema):
-    SKIP_VALUES = set([None])
-
-    @post_dump
-    def remove_skip_values(self, data, **kwargs):
-        return dict(
-            (
-                (key, value)
-                for key, value in data.items()
-                if value is not None or not isinstance(self.fields[key], fields.Nested)
-            )
-        )
 
 
 class EngineConnector(object):

@@ -8,7 +8,8 @@ import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import Query, class_mapper, interfaces, joinedload, selectinload
+from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
+                            selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.query import Bundle
 from sqlalchemy.orm.session import make_transient
@@ -92,10 +93,6 @@ class BaseQuery(Query):
     def model_class(self):
         return self.session.db.models[self._bind_mapper().class_.__name__]
 
-    @property
-    def marshmallow_schema(self):
-        return self.model_class.__marshmallow__()
-
     def save_to_cache(self, objects=None):
         if objects is None:
             objects = list(self.objects())
@@ -111,8 +108,7 @@ class BaseQuery(Query):
     def export_to_json(self, objects=None):
         if objects is None:
             objects = list(self.objects())
-        data = self.marshmallow_schema.dump(self.objects(), many=True)
-        dump_json(data, self.json_file)
+        dump_json(objects, self.json_file)
 
     def load_from_cache(self, session=None):
         session = session or self.session
@@ -127,14 +123,6 @@ class BaseQuery(Query):
             for instance in self.session:
                 make_transient(instance)
             yield obj
-
-    def marshmallow_load(self, data, many=True):
-        for item in data:
-            obj = self.marshmallow_schema.load(item, many=False)
-            if isinstance(obj, dict):
-                yield self.model_class(**obj)
-            else:
-                yield obj
 
     def with_loaded_relations(
         self, max_join_depth, max_backref_depth, exclude, include
