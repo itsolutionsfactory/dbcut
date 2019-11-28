@@ -4,16 +4,10 @@ services:
   - docker
 
 env:
-- PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:9.5
-- PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:11
 - PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:9.5
 - PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:11
-- PYTHON_IMAGE=python:3.7 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:9.5
-- PYTHON_IMAGE=python:3.7 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:11
 - PYTHON_IMAGE=python:3.7 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:9.5
 - PYTHON_IMAGE=python:3.7 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:11
-- PYTHON_IMAGE=python:3.8 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:9.5
-- PYTHON_IMAGE=python:3.8 MYSQL_IMAGE=mysql:5.7 POSTGRES_IMAGE=postgres:11
 - PYTHON_IMAGE=python:3.8 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:9.5
 - PYTHON_IMAGE=python:3.8 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:11
 before_script:
