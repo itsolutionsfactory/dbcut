@@ -55,8 +55,8 @@ Getting started
 Let's take the following database example:
 
 
-.. image:: demo/example-simple-db.png
-   :target: demo/example-simple-db.png
+.. image:: https://raw.githubusercontent.com/itsolutionsfactory/dbcut/master/demo/example-simple-db.png?raw=true
+   :target: https://raw.githubusercontent.com/itsolutionsfactory/dbcut/master/demo/example-simple-db.png?raw=true
    :alt: Simple Database
 
 
