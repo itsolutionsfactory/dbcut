@@ -247,7 +247,7 @@ To narrow more precisely our extraction, we are now going to limit to roles that
        where:
          permission.codename: 'delete_user'
 
- Only the last extraction rule is relaunched with the ``--last-only`` option.
+Only the last extraction rule is relaunched with the ``--last-only`` option.
 
 .. code-block::
 
