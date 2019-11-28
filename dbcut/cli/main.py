@@ -50,4 +50,6 @@ def load_configuration_file(ctx, param, value):
 @pass_context
 def main(ctx, **kwargs):
     """Extract a lightweight subset of your production DB for development and testing purpose."""
+    if ctx.config["cache"] is None:
+        ctx.no_cache = True
     pass
