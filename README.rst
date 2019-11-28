@@ -234,7 +234,7 @@ If we had not used the ``include`` keyword, all tables would have been extracted
 
 To narrow more precisely our extraction, we are now going to limit to roles that can delete a user.
 
-.. code-block::
+.. code-block:: yaml
 
    queries:
      - from: user
@@ -249,7 +249,7 @@ To narrow more precisely our extraction, we are now going to limit to roles that
 
 Only the last extraction rule is relaunched with the ``--last-only`` option.
 
-.. code-block::
+.. code-block:: yaml
 
    $ dbcut -y clear load --last-only
    ...
