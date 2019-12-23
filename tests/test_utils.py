@@ -43,17 +43,17 @@ class SortedNestedDictTestCase(unittest.TestCase):
 
     def test_non_dicts_are_untouched(self):
         data = "ravioli"
-        self.assertEqual(data, sorted_nested_dict(data))
+        self.assertIs(data, sorted_nested_dict(data))
         data = ["r", "a", "v", "i", "o", "l", "i"]
-        self.assertEqual(data, sorted_nested_dict(data))
+        self.assertIs(data, sorted_nested_dict(data))
         data = 42
-        self.assertEqual(data, sorted_nested_dict(data))
+        self.assertIs(data, sorted_nested_dict(data))
 
         class Custom:
             pass
 
         data = Custom()
-        self.assertEqual(data, sorted_nested_dict(data))
+        self.assertIs(data, sorted_nested_dict(data))
 
 
 if __name__ == "__main__":
