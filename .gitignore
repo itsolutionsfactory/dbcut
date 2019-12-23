@@ -68,3 +68,6 @@ target/
 dbcut.yml
 /demo/*.sql
 /.env
+
+# Jetbrains
+.idea
