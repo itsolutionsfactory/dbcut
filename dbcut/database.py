@@ -16,19 +16,15 @@ from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.orm import mapper
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
+from sqlalchemy.types import Text
 
 from .configuration import DEFAULT_CONFIG
 from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (
-    aslist,
-    cached_property,
-    create_directory,
-    generate_valid_index_name,
-    to_unicode,
-)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -37,6 +33,8 @@ except ImportError:
 
     SessionProfiler = StreamReporter = VoidObject
 
+
+_MYSQL_LENGHT_TEXT_INDEX_COLUMN = 128
 
 __all__ = ["Database"]
 
@@ -171,7 +169,7 @@ class Database(object):
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            if self.enable_cache and self.cached_metadata:
+            if self.enable_cache and self.cached_metadata and False:
                 self.Model.prepare(bind)
             else:
                 self.Model.prepare(
@@ -191,6 +189,17 @@ class Database(object):
                     index.name = conv(
                         generate_valid_index_name(index, self.engine.dialect)
                     )
+                    mysql_length = {}
+
+                    if self.engine.dialect.name == "mysql":
+                        for column in list(index.columns):
+                            if isinstance(column.type, Text):
+                                mysql_length[column.name] = _MYSQL_LENGHT_TEXT_INDEX_COLUMN
+                        if len(list(index.columns)) == 1 and mysql_length:
+                            mysql_length = mysql_length[next(iter(mysql_length))]
+                        if mysql_length:
+                            index.kwargs['mysql_length'] = mysql_length
+
                 if self.enable_cache:
                     with open(
                         os.path.join(self.cached_metadata_path), "wb"
