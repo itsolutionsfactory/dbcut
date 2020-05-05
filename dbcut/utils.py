@@ -194,7 +194,7 @@ def sorted_nested_dict(data):
             res[k] = sorted_nested_dict(v)
         elif isinstance(v, (list, tuple)):
             res[k] = []
-            for i in v:
+            for i in sorted(v):
                 res[k].append(sorted_nested_dict(i))
         else:
             res[k] = v

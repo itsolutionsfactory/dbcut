@@ -1,10 +1,18 @@
 CHANGELOG
 =========
 
-Version 0.1.3.dev0
-------------------
+Version 0.1.3
+-------------
 
-**unreleased**
+Released on November 27th 2019
+
+Bug fixes:
+
+- Determistic cache key generation.
+- `clear` cmd delete only existing table.  
+
+First release on PyPI.
+
 
 Version 0.1.2
 -------------
@@ -13,7 +21,7 @@ Released on November 15th 2019
 
 
 * Removed SAWarning about loading declaratives classes twice
-* Fixed syntax error on sl truncate queries
+* Fixed syntax error on sql truncate queries
 * Fixed query parsing when mixing attributes in the same query
 
 Version 0.1.1
