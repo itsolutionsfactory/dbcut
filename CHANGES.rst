@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+Version 0.1.4.dev0
+------------------
+
+**unreleased**
+
 Version 0.1.3
 -------------
 
