@@ -169,7 +169,7 @@ class Database(object):
         if not self._reflected:
             if bind is None:
                 bind = self.engine
-            if self.enable_cache and self.cached_metadata and False:
+            if self.enable_cache and self.cached_metadata:
                 self.Model.prepare(bind)
             else:
                 self.Model.prepare(
