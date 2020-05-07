@@ -1,10 +1,15 @@
 CHANGELOG
 =========
 
-Version 0.1.4.dev0
-------------------
+Version 0.1.4
+-------------
 
-**unreleased**
+Bug fixed:
+
+- Fixed TypeError exception
+- Defined a max length for indexes on TEXT column on mysql databases
+
+Released on May 07th 2020
 
 Version 0.1.3
 -------------
