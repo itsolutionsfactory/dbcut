@@ -4,6 +4,7 @@ import os
 from io import open
 
 import yaml
+
 from jinja2 import Template
 
 HERE = os.path.abspath(os.path.dirname(__file__))

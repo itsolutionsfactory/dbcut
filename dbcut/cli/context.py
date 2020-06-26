@@ -8,6 +8,7 @@ from functools import update_wrapper
 
 import click
 from dotenv import find_dotenv, load_dotenv
+
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url

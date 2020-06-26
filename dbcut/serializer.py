@@ -7,6 +7,7 @@ from collections import OrderedDict
 from io import open
 
 import yaml
+
 from sqlalchemy.orm import Query
 
 from .utils import to_unicode
