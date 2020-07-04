@@ -4,3 +4,5 @@ jedi
 pdbpp
 twine
 wheel
+jinja2
+pyyaml
