@@ -467,7 +467,10 @@ class Database(object):
     ):
         if self.echo_sql:
             if conn.engine.dialect.name == "mysql":
-                self._echo_statement(cursor._last_executed)
+                if hasattr(cursor, "_executed"):
+                    self._echo_statement(cursor._executed)
+                else:
+                    self._echo_statement(cursor._last_executed)
             if conn.engine.dialect.name == "postgresql":
                 self._echo_statement(cursor.query)
 
