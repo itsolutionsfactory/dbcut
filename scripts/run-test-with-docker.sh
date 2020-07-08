@@ -6,6 +6,8 @@ export POSTGRES_IMAGE=${POSTGRES_IMAGE:-postgres:9.6}
 export MYSQL_IMAGE=${MYSQL_IMAGE:-mariadb:10.3}
 export JOB_ID=$(echo ${TRAVIS_JOB_ID:-${CI_JOB_ID:-${TMUX_PANE:-"1"}}} | sed 's/[^0-9]*//g')
 
+export COMPOSE_PROJECT_NAME=dbcut_test_${JOB_ID}
+
 echo "-------------------------------------------------------------------------------"
 echo ""
 echo "              python : ${PYTHON_IMAGE}"
