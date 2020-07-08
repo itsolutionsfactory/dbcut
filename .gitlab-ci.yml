@@ -1,0 +1,38 @@
+stages:
+  - test
+
+.test_suite: &test_suite
+  image: git.itsf.io:5005/docker/dind-compose
+  stage: test
+  tags:
+    - dind
+  script:
+    - make docker-test
+
+python_stable_db_stable:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:3.6
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:9.5
+
+python_stable_db_latest:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:3.6
+    MYSQL_IMAGE: mariadb:latest
+    POSTGRES_IMAGE: postgres:latest
+
+python_latest_db_stable:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:latest
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:9.5
+
+python_latest_db_latest:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:latest
+    MYSQL_IMAGE: mariadb:latest
+    POSTGRES_IMAGE: postgres:latest

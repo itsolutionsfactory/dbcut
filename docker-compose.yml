@@ -23,6 +23,7 @@ services:
 
   dbcut_app:
     <<: *defaults
+    container_name: dbcut_app_${CI_JOB_ID:-1}
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -35,11 +36,13 @@ services:
       - .:/app
 
   mysql_test:
+    container_name: mysql_test_${CI_JOB_ID:-1}
     <<: *defaults
     image: ${MYSQL_IMAGE:-mariadb:10.3}
     volumes:
       - ./docker/mysql_test/:/docker-entrypoint-initdb.d:ro
 
   postgres_test:
+    container_name: mysql_test_${CI_JOB_ID:-1}
     <<: *defaults
     image: ${POSTGRES_IMAGE:-postgres:9.5}
