@@ -114,12 +114,9 @@ which will create a 'major' release (0.0.2 => 1.0.0-dev)."""
     bumpver = subprocess.check_output(
         ["bumpversion", part, "--dry-run", "--verbose"], stderr=subprocess.STDOUT
     ).decode("utf-8")
-    __import__("pdb").set_trace()
-    m = re.search(r"current_version.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
+    m = re.search(r"current_version=.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
     current_version = m.groups(0)[0]
-    m = re.search(
-        r"New version will be.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver
-    )
+    m = re.search(r"new_version=.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
     next_version = m.groups(0)[0]
 
     current_version_title = generate_changelog_title(current_version)
