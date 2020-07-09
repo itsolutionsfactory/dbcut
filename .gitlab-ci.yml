@@ -8,6 +8,13 @@ stages:
     - dind
   script:
     - make docker-test
+  only:
+    - master
+    - /^release-/
+    - /^tmp-release-/
+    - /^.*-integration$/
+    - merge_requests
+    - web
 
 
 python36_mariadb103_postgres95:

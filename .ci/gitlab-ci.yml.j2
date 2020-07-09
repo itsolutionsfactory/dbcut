@@ -8,6 +8,13 @@ stages:
     - dind
   script:
     - make docker-test
+  only:
+    - master
+    - /^release-/
+    - /^tmp-release-/
+    - /^.*-integration$/
+    - merge_requests
+    - web
 
 {% for pipeline in pipelines %}
 {{ pipeline.name }}:
@@ -17,12 +24,3 @@ stages:
     {{ variable_key }}: {{ variable_value }}
 {%- endfor %}
 {% endfor %}
-
-before_script:
-  - make docker-build
-
-script:
-  - make docker-test
-
-after_script:
-  - make docker-cleanup
