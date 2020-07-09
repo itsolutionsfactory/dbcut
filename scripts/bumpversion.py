@@ -48,6 +48,7 @@ which will create a 'release' version (Eg. 0.7.2-dev => 0.7.2).
         ["bumpversion", "release", "--dry-run", "--verbose"], stderr=subprocess.STDOUT
     ).decode("utf-8")
     m = re.search(r"Parsing version \'(\d+\.\d+\.\d+)\.dev(\d+)\'", bumpver)
+    __import__("pdb").set_trace()
     current_version = m.groups(0)[0] + ".dev" + m.groups(0)[1]
     m = re.search(r"New version will be \'(\d+\.\d+\.\d+)\'", bumpver)
     release_version = m.groups(0)[0]
@@ -113,11 +114,9 @@ which will create a 'major' release (0.0.2 => 1.0.0-dev)."""
     bumpver = subprocess.check_output(
         ["bumpversion", part, "--dry-run", "--verbose"], stderr=subprocess.STDOUT
     ).decode("utf-8")
-    m = re.search(r"current_version.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
+    m = re.search(r"current_version=.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
     current_version = m.groups(0)[0]
-    m = re.search(
-        r"New version will be.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver
-    )
+    m = re.search(r"new_version=.*?(\d+\.\d+\.\d+\.dev\d+|\d+\.\d+\.\d+)", bumpver)
     next_version = m.groups(0)[0]
 
     current_version_title = generate_changelog_title(current_version)

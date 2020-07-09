@@ -18,4 +18,6 @@ RUN /bin/bash /tmp/build-venv.sh
 
 WORKDIR /app
 
+ADD . /app
+
 ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -4,8 +4,8 @@ services:
   - docker
 
 env:
-{% for env in env_list -%}
-  - {{ env }}
+{% for pipeline in pipelines -%}
+  - {{ pipeline.env }}
 {% endfor -%}
 
 before_script:

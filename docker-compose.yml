@@ -21,25 +21,29 @@ x-default-service: &defaults
 
 services:
 
-  dbcut_app:
+  app:
     <<: *defaults
     build:
-      context: .
+      context: "${PROJECT_DIR}"
       dockerfile: docker/Dockerfile
       args:
-        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.6}
+        PYTHON_IMAGE: ${PYTHON_IMAGE}
     depends_on:
       - mysql_test
       - postgres_test
-    volumes:
-      - .:/app
 
   mysql_test:
     <<: *defaults
-    image: ${MYSQL_IMAGE:-mariadb:10.3}
-    volumes:
-      - ./docker/mysql_test/:/docker-entrypoint-initdb.d:ro
+    build:
+      context: "${PROJECT_DIR}"
+      dockerfile: docker/mysql_test/Dockerfile
+      args:
+        MYSQL_IMAGE: ${MYSQL_IMAGE}
+    tmpfs:
+      - /var/lib/mysql
 
   postgres_test:
     <<: *defaults
-    image: ${POSTGRES_IMAGE:-postgres:9.5}
+    image: ${POSTGRES_IMAGE}
+    tmpfs:
+      - /var/lib/pgsql/data

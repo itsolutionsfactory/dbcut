@@ -1,0 +1,26 @@
+stages:
+  - test
+
+.test_suite: &test_suite
+  image: git.itsf.io:5005/docker/dind-compose
+  stage: test
+  tags:
+    - dind
+  script:
+    - make docker-test
+  only:
+    - master
+    - tags
+    - merge_requests
+    - triggers
+    - schedules
+
+
+{% for pipeline in pipelines %}
+{{ pipeline.name }}:
+  <<: *test_suite
+  variables:
+{%- for variable_key, variable_value in pipeline.variables.items() %}
+    {{ variable_key }}: {{ variable_value }}
+{%- endfor %}
+{% endfor %}
