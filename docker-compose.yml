@@ -31,8 +31,6 @@ services:
     depends_on:
       - mysql_test
       - postgres_test
-    volumes:
-      - "${PROJECT_DIR}:/app"
 
   mysql_test:
     <<: *defaults
