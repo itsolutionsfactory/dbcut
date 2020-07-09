@@ -10,11 +10,11 @@ stages:
     - make docker-test
   only:
     - master
-    - /^release-/
-    - /^tmp-release-/
-    - /^.*-integration$/
+    - tags
     - merge_requests
-    - web
+    - triggers
+    - schedules
+
 
 
 python3.6_mariadb10.3_postgres9.5:

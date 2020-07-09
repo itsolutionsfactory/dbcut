@@ -10,11 +10,11 @@ stages:
     - make docker-test
   only:
     - master
-    - /^release-/
-    - /^tmp-release-/
-    - /^.*-integration$/
+    - tags
     - merge_requests
-    - web
+    - triggers
+    - schedules
+
 
 {% for pipeline in pipelines %}
 {{ pipeline.name }}:
