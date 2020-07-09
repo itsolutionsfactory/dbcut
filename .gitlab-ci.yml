@@ -10,42 +10,42 @@ stages:
     - make docker-test
 
 
-python3.6_mariadb10.3_postgres9.5:
+python36_mariadb103_postgres95:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.6
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:9.5
 
-python3.6_mariadb10.3_postgres11:
+python36_mariadb103_postgres11:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.6
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
 
-python3.7_mariadb10.3_postgres9.5:
+python37_mariadb103_postgres95:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.7
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:9.5
 
-python3.7_mariadb10.3_postgres11:
+python37_mariadb103_postgres11:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.7
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
 
-python3.8_mariadb10.3_postgres9.5:
+python38_mariadb103_postgres95:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.8
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:9.5
 
-python3.8_mariadb10.3_postgres11:
+python38_mariadb103_postgres11:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.8

@@ -23,7 +23,7 @@ def write(content, fname):
 
 def generate_pipeline_name(env_value):
     images = re.findall(r"\.*IMAGE=(.*?)(?!\S)", env_value, re.DOTALL)
-    return "_".join(image.replace(":", "") for image in images)
+    return "_".join(image.replace(":", "").replace(".", "") for image in images)
 
 
 def generate_pipeline_variables(env_value):
