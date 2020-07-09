@@ -34,11 +34,13 @@ services:
 
   mysql_test:
     <<: *defaults
-    image: ${MYSQL_IMAGE:-mariadb:10.3}
+    build:
+      context: "${PROJECT_DIR}"
+      dockerfile: docker/mysql_test/Dockerfile
+      args:
+        MYSQL_IMAGE: ${MYSQL_IMAGE}
     tmpfs:
       - /var/lib/mysql
-    volumes:
-      - "${PROJECT_DIR}/docker/mysql_test:/docker-entrypoint-initdb.d:ro"
 
   postgres_test:
     <<: *defaults
