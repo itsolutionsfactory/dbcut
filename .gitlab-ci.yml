@@ -51,13 +51,3 @@ python38_mariadb103_postgres11:
     PYTHON_IMAGE: python:3.8
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
-
-
-before_script:
-  - make docker-build
-
-script:
-  - make docker-test
-
-after_script:
-  - make docker-cleanup
