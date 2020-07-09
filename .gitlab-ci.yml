@@ -9,30 +9,55 @@ stages:
   script:
     - make docker-test
 
-python_stable_db_stable:
+
+python3.6_mariadb10.3_postgres9.5:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.6
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:9.5
 
-python_stable_db_latest:
+python3.6_mariadb10.3_postgres11:
   <<: *test_suite
   variables:
     PYTHON_IMAGE: python:3.6
-    MYSQL_IMAGE: mariadb:latest
-    POSTGRES_IMAGE: postgres:latest
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:11
 
-python_latest_db_stable:
+python3.7_mariadb10.3_postgres9.5:
   <<: *test_suite
   variables:
-    PYTHON_IMAGE: python:latest
+    PYTHON_IMAGE: python:3.7
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:9.5
 
-python_latest_db_latest:
+python3.7_mariadb10.3_postgres11:
   <<: *test_suite
   variables:
-    PYTHON_IMAGE: python:latest
-    MYSQL_IMAGE: mariadb:latest
-    POSTGRES_IMAGE: postgres:latest
+    PYTHON_IMAGE: python:3.7
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:11
+
+python3.8_mariadb10.3_postgres9.5:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:3.8
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:9.5
+
+python3.8_mariadb10.3_postgres11:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:3.8
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:11
+
+
+before_script:
+  - make docker-build
+
+script:
+  - make docker-test
+
+after_script:
+  - make docker-cleanup
