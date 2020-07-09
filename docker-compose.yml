@@ -35,9 +35,13 @@ services:
   mysql_test:
     <<: *defaults
     image: ${MYSQL_IMAGE:-mariadb:10.3}
+    tmpfs:
+      - /var/lib/mysql
     volumes:
       - "${PROJECT_DIR}/docker/mysql_test:/docker-entrypoint-initdb.d:ro"
 
   postgres_test:
     <<: *defaults
     image: ${POSTGRES_IMAGE}
+    tmpfs:
+      - /var/lib/pgsql/data
