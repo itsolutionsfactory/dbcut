@@ -7,3 +7,4 @@ pptree
 python-dotenv
 tabulate
 tqdm
+alembic

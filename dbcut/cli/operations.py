@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+import warnings
 from contextlib import contextmanager
 from itertools import chain
 
+from sqlalchemy import create_engine
 from sqlalchemy_utils.functions import (create_database, database_exists,
                                         drop_database)
 from tabulate import tabulate
 from tqdm import tqdm
 
+from ..alembic import alembic_sync_schema
 from ..parser import parse_query
 from ..serializer import dump_yaml
 from ..utils import get_directory_size, to_unicode
@@ -149,6 +152,7 @@ def sync_schema(ctx):
     ctx.src_db.reflect()
     if not database_exists(ctx.dest_db_uri):
         create_db(ctx)
+
     create_tables(ctx)
 
 
@@ -185,7 +189,7 @@ def clear(ctx):
 
 
 def load(ctx):
-    sync_schema(ctx)
+    sync_db(ctx)
     load_data(ctx)
 
 
@@ -247,3 +251,16 @@ def purge_cache(ctx):
     for file in file_names:
         os.remove(file)
     ctx.log(" ---> Purged all cache")
+
+
+def sync_db(ctx):
+    # Create database
+    if not database_exists(ctx.dest_db_uri):
+        create_db(ctx)
+
+    # create_tables(ctx)
+
+    from_engine = create_engine(ctx.src_db_uri)
+    to_engine = create_engine(ctx.dest_db_uri)
+
+    alembic_sync_schema(ctx, from_engine, to_engine)
