@@ -3,7 +3,8 @@ import os
 from contextlib import contextmanager
 from itertools import chain
 
-from sqlalchemy_utils.functions import create_database, database_exists, drop_database
+from sqlalchemy_utils.functions import (create_database, database_exists,
+                                        drop_database)
 from tabulate import tabulate
 from tqdm import tqdm
 
@@ -43,28 +44,14 @@ def db_profiling(ctx):
 
 def get_objects_generator(ctx, query, session):
 
-    if ctx.no_cache:
+    if ctx.no_cache or ctx.force_refresh or not query.is_cached:
         using_cache = False
         count = query.count()
         generator = query.objects()
     else:
-        if not query.is_cached or ctx.force_refresh:
-            using_cache = False
-            count = query.count()
-
-            def generator_func():
-                objects = []
-                for obj in query.objects():
-                    objects.append(obj)
-                    yield obj
-                query.save_to_cache(objects=objects)
-
-            generator = generator_func()
-
-        else:
-            using_cache = True
-            count, data = query.load_from_cache()
-            generator = (obj for obj in data)
+        using_cache = True
+        count, data = query.load_from_cache()
+        generator = (obj for obj in data)
 
     def objects_generator():
         progressbar = None
@@ -89,6 +76,13 @@ def get_objects_generator(ctx, query, session):
             progressbar.close()
 
     return objects_generator(), count, using_cache
+
+
+def save_query_cache(ctx, query, objects):
+    if ctx.no_cache:
+        return
+    if ctx.force_refresh or not query.is_cached:
+        query.save_to_cache(objects=objects)
 
 
 def copy_query(ctx, query, session, query_index, number_of_queries):
@@ -121,9 +115,8 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
             ctx.log(" ---> Fetching objects")
             objects_to_serialize = []
             for obj in objects_generator:
-                if ctx.export_json:
-                    objects_to_serialize.append(obj)
-                else:
+                objects_to_serialize.append(obj)
+                if not ctx.export_json:
                     session.add(obj)
 
             if ctx.export_json:
@@ -133,6 +126,9 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
                 rows_count = len(list(session))
                 ctx.log(" ---> Inserting {} rows".format(rows_count))
                 session.commit()
+
+            save_query_cache(ctx, query, objects_to_serialize)
+
         else:
             ctx.log(" ---> Nothing to do")
     else:
