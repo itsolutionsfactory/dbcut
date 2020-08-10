@@ -50,7 +50,7 @@ def get_objects_generator(ctx, query, session):
         generator = query.objects()
     else:
         using_cache = True
-        count, data = query.load_from_cache()
+        count, data = query.load_from_cache(session=session)
         generator = (obj for obj in data)
 
     def objects_generator():
@@ -113,11 +113,8 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 
         if count:
             ctx.log(" ---> Fetching objects")
-            objects_to_serialize = []
-            for obj in objects_generator:
-                objects_to_serialize.append(obj)
-                if not ctx.export_json:
-                    session.add(obj)
+            objects_to_serialize = list(objects_generator)
+            save_query_cache(ctx, query, objects_to_serialize)
 
             if ctx.export_json:
                 ctx.log(" ---> Exporting json to {}".format(query.json_file))
@@ -125,9 +122,8 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
             else:
                 rows_count = len(list(session))
                 ctx.log(" ---> Inserting {} rows".format(rows_count))
+                session.add_all(objects_to_serialize)
                 session.commit()
-
-            save_query_cache(ctx, query, objects_to_serialize)
 
         else:
             ctx.log(" ---> Nothing to do")

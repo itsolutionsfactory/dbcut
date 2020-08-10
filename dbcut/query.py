@@ -5,14 +5,15 @@ from pickle import PicklingError
 from weakref import WeakSet
 
 import yaml
-
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import Query, class_mapper, interfaces, joinedload, selectinload
+from sqlalchemy.orm import (Query, class_mapper, interfaces, joinedload,
+                            selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.query import Bundle
-from sqlalchemy.orm.session import make_transient
+from sqlalchemy.orm.session import (make_transient, make_transient_to_detached,
+                                    object_session)
 
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
@@ -98,8 +99,7 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self, objects=None):
-        if objects is None:
-            objects = list(self.objects())
+        objects = objects or list(self.objects())
         try:
             content = sa_serializer.dumps(objects)
             with open(self.cache_file, "wb") as fd:
@@ -110,9 +110,9 @@ class BaseQuery(Query):
             pass
 
     def export_to_json(self, objects=None):
-        if objects is None:
-            objects = list(self.objects())
-        data = self.marshmallow_schema.dump(self.objects(), many=True)
+        data = self.marshmallow_schema.dump(
+            self.transient_objects(objects=objects), many=True
+        )
         dump_json(data, self.json_file)
 
     def load_from_cache(self, session=None):
@@ -123,10 +123,18 @@ class BaseQuery(Query):
         with open(self.cache_file, "rb") as fd:
             return count, sa_serializer.loads(fd.read(), metadata, session)
 
-    def objects(self):
-        for obj in self:
-            for instance in self.session:
+    def objects(self, session=None):
+        yield from self.transient_objects()
+
+    def transient_objects(self, objects=None, session=None):
+        if objects is None:
+            objects = self
+        for obj in objects:
+            if session is None:
+                session = object_session(obj)
+            for instance in session or []:
                 make_transient(instance)
+            make_transient_to_detached(obj)
             yield obj
 
     def marshmallow_load(self, data, many=True):
