@@ -120,9 +120,8 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
                 ctx.log(" ---> Exporting json to {}".format(query.json_file))
                 query.export_to_json(objects_to_serialize)
             else:
-                rows_count = len(list(session))
-                ctx.log(" ---> Inserting {} rows".format(rows_count))
                 session.add_all(objects_to_serialize)
+                ctx.log(" ---> Inserting {} rows".format(len(list(session))))
                 session.commit()
 
         else:
