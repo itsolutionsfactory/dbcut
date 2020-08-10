@@ -23,13 +23,8 @@ from .marshmallow_schema import register_new_schema
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (
-    aslist,
-    cached_property,
-    create_directory,
-    generate_valid_index_name,
-    to_unicode,
-)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -172,46 +167,41 @@ class Database(object):
     def reflect(self, bind=None):
         """Reflect metadata from database"""
         if not self._reflected:
+            reflect = True
             if bind is None:
                 bind = self.engine
             if self.enable_cache and self.cached_metadata:
-                self.Model.prepare(bind)
-            else:
-                self.Model.prepare(
-                    bind,
-                    reflect=True,
-                    name_for_scalar_relationship=self._name_for_scalar_relationship,
-                    name_for_collection_relationship=self._name_for_collection_relationship,
-                    generate_relationship=self._gen_relationship,
-                )
+                reflect = False
 
-                for table in self.tables.values():
-                    for constraint in table.constraints:
-                        if constraint.name:
-                            constraint.name = conv(constraint.name)
+            self.Model.prepare(
+                bind,
+                reflect=reflect,
+                name_for_scalar_relationship=self._name_for_scalar_relationship,
+                name_for_collection_relationship=self._name_for_collection_relationship,
+                generate_relationship=self._gen_relationship,
+            )
 
-                for index in self.get_all_indexes():
-                    index.name = conv(
-                        generate_valid_index_name(index, self.engine.dialect)
-                    )
-                    mysql_length = {}
+            for table in self.tables.values():
+                for constraint in table.constraints:
+                    if constraint.name:
+                        constraint.name = conv(constraint.name)
 
-                    if self.engine.dialect.name == "mysql":
-                        for column in list(index.columns):
-                            if isinstance(column.type, Text):
-                                mysql_length[
-                                    column.name
-                                ] = _MYSQL_LENGHT_TEXT_INDEX_COLUMN
-                        if len(list(index.columns)) == 1 and mysql_length:
-                            mysql_length = mysql_length[next(iter(mysql_length))]
-                        if mysql_length:
-                            index.kwargs["mysql_length"] = mysql_length
+            for index in self.get_all_indexes():
+                index.name = conv(generate_valid_index_name(index, self.engine.dialect))
+                mysql_length = {}
 
-                if self.enable_cache:
-                    with open(
-                        os.path.join(self.cached_metadata_path), "wb"
-                    ) as cache_file:
-                        pickle.dump(self.metadata, cache_file)
+                if self.engine.dialect.name == "mysql":
+                    for column in list(index.columns):
+                        if isinstance(column.type, Text):
+                            mysql_length[column.name] = _MYSQL_LENGHT_TEXT_INDEX_COLUMN
+                    if len(list(index.columns)) == 1 and mysql_length:
+                        mysql_length = mysql_length[next(iter(mysql_length))]
+                    if mysql_length:
+                        index.kwargs["mysql_length"] = mysql_length
+
+            if self.enable_cache and not self.cached_metadata:
+                with open(os.path.join(self.cached_metadata_path), "wb") as cache_file:
+                    pickle.dump(self.metadata, cache_file)
 
             self._reflected = True
 
