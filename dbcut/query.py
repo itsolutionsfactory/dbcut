@@ -99,7 +99,8 @@ class BaseQuery(Query):
         return self.model_class.__marshmallow__()
 
     def save_to_cache(self, objects=None):
-        objects = objects or list(self.objects())
+        if objects is None:
+            objects = list(self.objects())
         try:
             content = sa_serializer.dumps(objects)
             with open(self.cache_file, "wb") as fd:
@@ -110,9 +111,9 @@ class BaseQuery(Query):
             pass
 
     def export_to_json(self, objects=None):
-        data = self.marshmallow_schema.dump(
-            self.transient_objects(objects=objects), many=True
-        )
+        if objects is None:
+            objects = self.objects()
+        data = self.marshmallow_schema.dump(objects, many=True)
         dump_json(data, self.json_file)
 
     def load_from_cache(self, session=None):
