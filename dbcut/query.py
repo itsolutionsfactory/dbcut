@@ -300,7 +300,7 @@ class QueryProperty(object):
         try:
             mapper = class_mapper(type)
             if mapper:
-                return self.db.query_class(mapper, session=self._db.session)
+                return self.db.query_class(mapper, session=self.db.session)
         except UnmappedClassError:
             return self
 
