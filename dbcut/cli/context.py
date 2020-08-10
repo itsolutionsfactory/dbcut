@@ -8,7 +8,6 @@ from functools import update_wrapper
 
 import click
 from dotenv import find_dotenv, load_dotenv
-
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url
@@ -79,7 +78,7 @@ class Context(object):
     def src_db(self):
         return Database(
             uri=self.src_db_uri,
-            echo_sql=self.dump_sql,
+            echo_sql=False,
             cache_dir=self.config["cache"],
             enable_cache=(not self.no_cache),
         )
