@@ -1,10 +1,18 @@
 CHANGELOG
 =========
 
-Version 0.1.5.dev0
-------------------
+Version 0.1.5
+-------------
 
-**unreleased**
+Released on August 11th 2020
+
+Bug fixed:
+
+- Fixed dumpjson regression
+- `dumpsql` prints only create and insert sql statements
+- Fixed query caching mechanism
+- Prepared all mapper objects correctly when metadata is cached
+- Various minor bug fixes
 
 Version 0.1.4
 -------------
