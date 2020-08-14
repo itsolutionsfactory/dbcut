@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from click.testing import CliRunner
+
 from dbcut.cli.main import main
 
 DEFAULT_YML = """

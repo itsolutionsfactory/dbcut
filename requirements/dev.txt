@@ -6,3 +6,5 @@ twine
 wheel
 jinja2
 pyyaml
+black
+isort
