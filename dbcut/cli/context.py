@@ -42,6 +42,7 @@ class Context(object):
             "profiler",
             "interactive",
             "estimate",
+            "with_cache",
         ]
         for flag in self.flags:
             setattr(self, flag, False)

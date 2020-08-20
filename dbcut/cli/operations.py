@@ -159,6 +159,8 @@ def create_tables(ctx, checkfirst=True):
 
 
 def flush(ctx):
+    if ctx.with_cache:
+        purge_cache(ctx)
     if database_exists(ctx.dest_db_uri):
         ctx.confirm("Removes ALL TABLES from %s" % repr(ctx.dest_db_uri), default=False)
         ctx.log(" ---> Removing %s database" % repr(ctx.dest_db_uri))
