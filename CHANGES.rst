@@ -1,74 +1,64 @@
 CHANGELOG
 =========
 
+All notable changes to this project will be documented in this file.
+
+The format is based on `Keep a Changelog <http://keepachangelog.com/en/1.0.0/>`_, and this project adheres to `Semantic Versioning <http://semver.org/spec/v2.0.0.html>`_.
+
+
 Version 0.1.6
 -------------
 
 Released on August 20th 2020
 
-Changed:
+Changed
+~~~~~~~
+- `flush` purges the cache only when `--with-cache` is passed
 
-- The flush command purges the cache only when `--with-cache` is passed
-
-Fixed:
-
+Fixed
+~~~~~
 - Load only transient mapper objects to force sqlalchemy to generate sql insert queries
+
 
 Version 0.1.5
 -------------
 
 Released on August 11th 2020
 
-Bug fixed:
-
-- Fixed dumpjson regression
+Changed
+~~~~~~~
 - `dumpsql` prints only create and insert sql statements
+
+Fixed
+~~~~~
+- Fixed dumpjson regression
 - Fixed query caching mechanism
 - Prepared all mapper objects correctly when metadata is cached
 - Various minor bug fixes
 
+
 Version 0.1.4
 -------------
 
-Bug fixed:
+Released on May 07th 2020
 
+Fixed
+~~~~~
 - Fixed TypeError exception
 - Defined a max length for indexes on TEXT column on mysql databases
 
-Released on May 07th 2020
 
 Version 0.1.3
 -------------
 
 Released on November 27th 2019
 
-Bug fixes:
+Changed
+~~~~~~~
+- `clear` cmd delete only existing table.
 
+Fixed
+~~~~~
 - Determistic cache key generation.
-- `clear` cmd delete only existing table.  
 
 First release on PyPI.
-
-
-Version 0.1.2
--------------
-
-Released on November 15th 2019
-
-
-* Removed SAWarning about loading declaratives classes twice
-* Fixed syntax error on sql truncate queries
-* Fixed query parsing when mixing attributes in the same query
-
-Version 0.1.1
--------------
-
-Released on November 14th 2019
-
-
-* Removed universal wheel package, only python3 is supported
-
-Version 0.1.0
--------------
-
-Released on November 14th 2019
