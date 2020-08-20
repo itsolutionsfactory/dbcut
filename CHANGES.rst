@@ -1,10 +1,18 @@
 CHANGELOG
 =========
 
-Version 0.1.6.dev0
-------------------
+Version 0.1.6
+-------------
 
-**unreleased**
+Released on August 20th 2020
+
+Changed:
+
+- The flush command purges the cache only when `--with-cache` is passed
+
+Fixed:
+
+- Load only transient mapper objects to force sqlalchemy to generate sql insert queries
 
 Version 0.1.5
 -------------
