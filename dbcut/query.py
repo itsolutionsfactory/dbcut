@@ -11,11 +11,7 @@ from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import Query, class_mapper, interfaces, joinedload, selectinload
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.query import Bundle
-from sqlalchemy.orm.session import (
-    make_transient,
-    make_transient_to_detached,
-    object_session,
-)
+from sqlalchemy.orm.session import make_transient, object_session
 
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
@@ -137,7 +133,6 @@ class BaseQuery(Query):
                 session = object_session(obj)
             for instance in session or []:
                 make_transient(instance)
-            make_transient_to_detached(obj)
             yield obj
 
     def marshmallow_load(self, data, many=True):
