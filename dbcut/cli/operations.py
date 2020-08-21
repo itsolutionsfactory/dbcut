@@ -12,19 +12,16 @@ from ..serializer import dump_yaml
 from ..utils import get_directory_size, to_unicode
 
 
-def parse_queries(ctx):
+def get_raw_queries(ctx):
     queries = []
-    session = ctx.src_db.session
     if ctx.only_tables:
-        raw_queries = [q for q in ctx.config["queries"] if q["from"] in ctx.only_tables]
+        queries = [q for q in ctx.config["queries"] if q["from"] in ctx.only_tables]
     else:
-        raw_queries = ctx.config["queries"]
+        queries = ctx.config["queries"]
 
-    if ctx.last_only and raw_queries:
-        raw_queries = [raw_queries[-1]]
+    if ctx.last_only and queries:
+        queries = [queries[-1]]
 
-    for dict_query in raw_queries:
-        queries.append(parse_query(dict_query.copy(), session, ctx.config))
     return queries
 
 
@@ -132,9 +129,10 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 def load_data(ctx):
     with db_profiling(ctx):
         with ctx.dest_db.no_fkc_session() as session:
-            queries = parse_queries(ctx)
-            number_of_queries = len(queries)
-            for query_index, query in enumerate(queries):
+            raw_queries = get_raw_queries(ctx)
+            number_of_queries = len(raw_queries)
+            for query_index, dict_query in enumerate(raw_queries):
+                query = parse_query(dict_query.copy(), ctx.src_db.session, ctx.config)
                 copy_query(ctx, query, session, query_index, number_of_queries)
 
 

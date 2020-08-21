@@ -412,7 +412,7 @@ class Database(object):
                     exclude_keys = []
 
                     if target_name == class_.__name__:
-                        exclude_keys = [keyname]
+                        exclude_keys = [keyname, relationship.back_populates]
                         attrs[keyname] = fields.Nested(
                             "self",
                             name=keyname,
