@@ -26,7 +26,7 @@ _print() { printf "\033[1;32m%b\033[0m\n" "$1"; }
 
 _cleanup() {
     _print ":: Cleanup"
-    docker-compose down -v --remove-orphans --rmi local
+    docker-compose down -v --remove-orphans
 }
 
 trap _cleanup EXIT
