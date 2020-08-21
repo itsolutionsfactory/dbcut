@@ -15,17 +15,13 @@ from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 from sqlalchemy.types import Text
 
+from . import VERSION
 from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (
-    aslist,
-    cached_property,
-    create_directory,
-    generate_valid_index_name,
-    to_unicode,
-)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -98,7 +94,7 @@ class Database(object):
             )
         else:
             db_cache_dir = os.path.join(self.uri.drivername, self.uri.database)
-        _cache_dir = os.path.join(self.global_cache_dir, db_cache_dir)
+        _cache_dir = os.path.join(self.global_cache_dir, VERSION, db_cache_dir)
         create_directory(_cache_dir)
         return _cache_dir
 
