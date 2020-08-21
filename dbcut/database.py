@@ -367,6 +367,7 @@ class Database(object):
     ):
         kw["lazy"] = "noload"
         kw["cascade"] = "all"
+        kw["post_update"] = True
         return generate_relationship(
             base, direction, return_fn, attrname, local_cls, referred_cls, **kw
         )
