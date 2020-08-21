@@ -18,8 +18,8 @@ Released on August 21st 2020
 
 Added
 ~~~~~
-- Always enable post_update to avoid circular dependecies
-- Disable all cache if 'cache' config key is set to 'no'
+- Always enable SQLAlchemy post_update to avoid circular dependecies
+- Disable all cache if `cache` config key is set to `no`
 - Do not globally exclude already loaded relations from the other extraction graph branches
 - Improved cyclical relations loading in the extraction graph
 
@@ -29,7 +29,7 @@ Changed
 
 Removed
 ~~~~~~~
-- Removed marshmallow serialization and prefer builtin json module
+- Removed marshmallow serialization and prefer builtin json
 
 
 Version 0.1.6
