@@ -49,7 +49,11 @@ class Configuration(dict):
             exc_type, exc_value, tb = sys.exc_info()
             reraise(exc_type, exc_value, tb.tb_next)
 
-        self["cache"] = create_directory(self["cache"])
+        if not self["cache"]:
+            self["cache"] = None
+        else:
+            self["cache"] = create_directory(self["cache"])
+
         if self.get("queries", None) is None:
             self["queries"] = []
 

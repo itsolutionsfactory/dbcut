@@ -3,7 +3,8 @@ import os
 from contextlib import contextmanager
 from itertools import chain
 
-from sqlalchemy_utils.functions import create_database, database_exists, drop_database
+from sqlalchemy_utils.functions import (create_database, database_exists,
+                                        drop_database)
 from tabulate import tabulate
 from tqdm import tqdm
 
@@ -93,7 +94,10 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
     ctx.log(
         query.relation_tree.render(return_value=True), tty_truncate=True, quietable=True
     )
-    ctx.log(" ---> Cache key : %s" % query.cache_key, quietable=True)
+    if ctx.no_cache:
+        ctx.log(" ---> Cache : disabled", quietable=True)
+    else:
+        ctx.log(" ---> Cache key : %s" % query.cache_key, quietable=True)
 
     continue_operation = True
     if ctx.interactive:
