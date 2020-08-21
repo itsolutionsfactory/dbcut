@@ -12,41 +12,46 @@ from sqlalchemy.orm import Query
 from .utils import to_unicode
 
 
-class JSONEncoder(json.JSONEncoder):
-    """JSON Encoder class that handles conversion for a number of types not
-    supported by the default json library, especially the sqlalchemy objects.
+def new_json_encoder():
 
-    :returns: object that can be converted to json
-    """
+    _visited_objs = []
 
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            representation = obj.isoformat()
-            if representation.endswith("+00:00"):
-                representation = representation[:-6] + "Z"
-            return to_unicode(representation)
-        if isinstance(obj, (datetime.date, datetime.time)):
-            return to_unicode(obj.isoformat())
-        elif isinstance(obj, (decimal.Decimal)):
-            return float(obj)
-        elif isinstance(obj, uuid.UUID):
-            return to_unicode(obj)
-        elif isinstance(obj, Query):
-            return list(obj)
-        elif isinstance(obj, bytes):
-            return obj.decode()
-        elif hasattr(obj, "tolist"):
-            return obj.tolist()
-        elif hasattr(obj, "to_dict"):
-            return obj.to_dict()
-        elif hasattr(obj, "__getitem__"):
-            try:
-                return dict(obj)
-            except Exception:
-                pass
-        elif hasattr(obj, "__iter__"):
-            return list(item for item in obj)
-        return super(JSONEncoder, self).default(obj)
+    class JSONEncoder(json.JSONEncoder):
+        def default(self, obj):
+
+            if isinstance(obj, datetime.datetime):
+                representation = obj.isoformat()
+                if representation.endswith("+00:00"):
+                    representation = representation[:-6] + "Z"
+                return to_unicode(representation)
+            if isinstance(obj, (datetime.date, datetime.time)):
+                return to_unicode(obj.isoformat())
+            elif isinstance(obj, (decimal.Decimal)):
+                return float(obj)
+            elif isinstance(obj, uuid.UUID):
+                return to_unicode(obj)
+            elif isinstance(obj, Query):
+                return list(obj)
+            elif isinstance(obj, bytes):
+                return obj.decode()
+            elif hasattr(obj, "tolist"):
+                return obj.tolist()
+            elif hasattr(obj, "__to_dict__"):
+                # avoid circular recursion
+                if obj in _visited_objs:
+                    return None
+                _visited_objs.append(obj)
+                return obj.__to_dict__()
+            elif hasattr(obj, "__getitem__"):
+                try:
+                    return dict(obj)
+                except Exception:
+                    pass
+            elif hasattr(obj, "__iter__"):
+                return list(item for item in obj)
+            return super(JSONEncoder, self).default(obj)
+
+    return JSONEncoder
 
 
 def to_json(data, **extra_kwargs):
@@ -54,7 +59,8 @@ def to_json(data, **extra_kwargs):
         "ensure_ascii": False,
         "indent": 2,
         "separators": (",", ": "),
-        "cls": JSONEncoder,
+        "cls": new_json_encoder(),
+        "check_circular": False,
     }
     kwargs.update(extra_kwargs)
     return json.dumps(data, **kwargs)
