@@ -53,10 +53,7 @@ clean-test:  ## Eemove test and coverage artifacts
 	rm -fr htmlcov/
 
 test:  ## Run tests quickly with the default Python
-	py.test
-
-test-all:  ## Run tests on every Python version with tox
-	tox
+	pytest --cov=dbcut --cov-report html --cov-report term:skip-covered
 
 coverage: ## Check code coverage quickly with the default Python
 	coverage erase
