@@ -28,6 +28,8 @@ services:
       dockerfile: docker/Dockerfile
       args:
         PYTHON_IMAGE: ${PYTHON_IMAGE}
+    volumes:
+      - "$ROOT_VOLUME_PATH:/app"
     depends_on:
       - mysql_test
       - postgres_test

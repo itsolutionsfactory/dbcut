@@ -10,6 +10,14 @@ export JOB_ID=$(echo ${TRAVIS_JOB_ID:-${CI_JOB_ID:-${TMUX_PANE:-"1"}}} | sed 's/
 
 export COMPOSE_PROJECT_NAME=dbcut_test_${JOB_ID}
 
+if [ -z "$CI_JOB_ID" ]; then
+    export ROOT_VOLUME_PATH=${ROOT_PROJECT}
+else
+    JOB_CONTAINER_ID=$(docker ps -q -f "label=com.gitlab.gitlab-runner.job.id=${CI_JOB_ID}")
+    BUILDS_VOLUME_SOURCE=$(docker inspect $JOB_CONTAINER_ID | jq '.[].Mounts | .[] | select(.Destination=="/builds") | .Source' | sed 's/"//g')
+    export ROOT_VOLUME_PATH="${BUILDS_VOLUME_SOURCE}/${CI_PROJECT_PATH}"
+fi
+
 echo "-------------------------------------------------------------------------------"
 echo ""
 echo "              python : ${PYTHON_IMAGE}"
