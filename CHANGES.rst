@@ -6,10 +6,26 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <http://keepachangelog.com/en/1.0.0/>`_, and this project adheres to `Semantic Versioning <http://semver.org/spec/v2.0.0.html>`_.
 
 
-Version 0.2.0.dev0
-------------------
+Version 0.2.0
+-------------
 
-**unreleased**
+Released on August 21st 2020
+
+Added
+~~~~~
+- Always enable post_update to avoid circular dependecies
+- Disable all cache if 'cache' config key is set to 'no'
+- Do not globally exclude already loaded relations from the other extraction graph branches
+- Improved cyclical relations loading in the extraction graph
+
+Changed
+~~~~~~~
+- Store cache by dbcut version
+
+Removed
+~~~~~~~
+- Removed marshmallow serialization and prefer builtin json module
+
 
 Version 0.1.6
 -------------
