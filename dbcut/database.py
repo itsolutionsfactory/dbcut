@@ -20,8 +20,13 @@ from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, create_directory,
-                    generate_valid_index_name, to_unicode)
+from .utils import (
+    aslist,
+    cached_property,
+    create_directory,
+    generate_valid_index_name,
+    to_unicode,
+)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
