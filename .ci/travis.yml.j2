@@ -3,6 +3,9 @@ language: minimal
 services:
   - docker
 
+before_install:
+- if [ ! -z ${DOCKER_USERNAME} ]; then docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || true; fi
+
 env:
 {% for pipeline in pipelines -%}
   - {{ pipeline.env }}

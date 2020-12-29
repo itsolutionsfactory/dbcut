@@ -84,8 +84,8 @@ release: clean  ## Package and upload a release
 	python setup.py sdist upload
 	python setup.py bdist_wheel upload
 
-generate-travis-config:  ## Bump the release version
-	@python scripts/generate-travis-config.py
+generate-ci-config:  ## generate travis and gitlab ci configuration
+	@python scripts/generate-ci-pipelines.py
 
 bumpversion:  ## Bump the release version
 	@python scripts/bumpversion.py release

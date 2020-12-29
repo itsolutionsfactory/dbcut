@@ -3,6 +3,9 @@ language: minimal
 services:
   - docker
 
+before_install:
+- if [ ! -z ${DOCKER_USERNAME} ]; then docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD || true; fi
+
 env:
 - PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:9.5
 - PYTHON_IMAGE=python:3.6 MYSQL_IMAGE=mariadb:10.3 POSTGRES_IMAGE=postgres:11
