@@ -96,6 +96,9 @@ newversion:  ## Set the new development version
 docker-test:  ## Run tests on default env with docker
 	@bash scripts/run-test-with-docker.sh
 
+docker-cleanup:  ## Cleanup all containers
+	@bash scripts/run-test-with-docker.sh cleanup
+
 docker-all-test:  ## Run tests on all env with docker
 	@bash scripts/run-all-test-with-docker.sh
 

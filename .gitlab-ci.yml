@@ -8,6 +8,8 @@ stages:
     - dind
   script:
     - make docker-test
+  after_script:
+    - make docker-cleanup
   only:
     - master
     - tags

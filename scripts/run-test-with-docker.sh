@@ -28,7 +28,7 @@ echo "         project dir : ${PROJECT_DIR}"
 echo ""
 echo "-------------------------------------------------------------------------------"
 
-cd $ROOT_PROJECT
+cd "$ROOT_PROJECT" || exit
 
 _print() { printf "\033[1;32m%b\033[0m\n" "$1"; }
 
@@ -37,12 +37,17 @@ _cleanup() {
     docker-compose down -v --remove-orphans
 }
 
-trap _cleanup EXIT
-trap '{ exit 1; }' TERM INT
+if [ "$1" = "cleanup" ]; then
+    _cleanup
+else
+    trap _cleanup EXIT
+    trap '{ exit 1; }' TERM INT
 
+    _cleanup
 
-_print ":: Building image"
-docker-compose build
+    _print ":: Building image"
+    docker-compose build
 
-_print ":: Running tests"
-docker-compose run --rm app make test
+    _print ":: Running tests"
+    docker-compose run --rm app make test
+fi
