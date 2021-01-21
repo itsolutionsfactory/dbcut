@@ -19,13 +19,6 @@ stages:
 
 
 
-python3.7_mariadb10.3_postgres9.5:
-  <<: *test_suite
-  variables:
-    PYTHON_IMAGE: python:3.7
-    MYSQL_IMAGE: mariadb:10.3
-    POSTGRES_IMAGE: postgres:9.5
-
 python3.7_mariadb10.3_postgres11:
   <<: *test_suite
   variables:
@@ -33,12 +26,12 @@ python3.7_mariadb10.3_postgres11:
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
 
-python3.8_mariadb10.3_postgres9.5:
+python3.7_mariadb10.3_postgres13:
   <<: *test_suite
   variables:
-    PYTHON_IMAGE: python:3.8
+    PYTHON_IMAGE: python:3.7
     MYSQL_IMAGE: mariadb:10.3
-    POSTGRES_IMAGE: postgres:9.5
+    POSTGRES_IMAGE: postgres:13
 
 python3.8_mariadb10.3_postgres11:
   <<: *test_suite
@@ -47,12 +40,12 @@ python3.8_mariadb10.3_postgres11:
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
 
-python3.9_mariadb10.3_postgres9.5:
+python3.8_mariadb10.3_postgres13:
   <<: *test_suite
   variables:
-    PYTHON_IMAGE: python:3.9
+    PYTHON_IMAGE: python:3.8
     MYSQL_IMAGE: mariadb:10.3
-    POSTGRES_IMAGE: postgres:9.5
+    POSTGRES_IMAGE: postgres:13
 
 python3.9_mariadb10.3_postgres11:
   <<: *test_suite
@@ -60,3 +53,10 @@ python3.9_mariadb10.3_postgres11:
     PYTHON_IMAGE: python:3.9
     MYSQL_IMAGE: mariadb:10.3
     POSTGRES_IMAGE: postgres:11
+
+python3.9_mariadb10.3_postgres13:
+  <<: *test_suite
+  variables:
+    PYTHON_IMAGE: python:3.9
+    MYSQL_IMAGE: mariadb:10.3
+    POSTGRES_IMAGE: postgres:13
