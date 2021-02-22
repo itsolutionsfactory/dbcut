@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from contextlib import contextmanager
 
+
 class BaseDialect(object):
     def do_execute(self, cursor, statement, parameters, context=None):
         # This is our own Base Dialect that overwrite all SQLALchemy dialects
