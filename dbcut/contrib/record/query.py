@@ -1,5 +1,6 @@
 import hashlib
 import os
+import base64
 from enum import Enum
 from mock import patch
 from contextlib import contextmanager
@@ -11,73 +12,43 @@ from sqlalchemy.orm import Query
 from dbcut.serializer import dump_json, load_json, to_json
 from dbcut.utils import sorted_nested_dict
 
-# class Recorder:
-#     def __init__(self, name, mode, output_dir):
-#         data_members = {
-#             "name": name,
-#             "mode": mode or RecordMode.ONCE,
-#             "serializer": JsonSerializer,
-#             "records": [],
-#             "output_dir": output_dir,
-#             "last_cache_key": "",
-#         }
-#         self.query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
+class Recorder:
+    def __init__(self, name, mode, output_dir):
+        # load records
+        records = []
 
-#     # def _patch_generator(self, cassette):
-#     #     with contextlib.ExitStack() as exit_stack:
-#     #         for patcher in CassettePatcherBuilder(cassette).build():
-#     #             exit_stack.enter_context(patcher)
-#     #         log_format = "{action} context for cassette at {path}."
-#     #         log.debug(log_format.format(action="Entering", path=cassette._path))
-#     #         yield cassette
-#     #         log.debug(log_format.format(action="Exiting", path=cassette._path))
-#     #         # TODO(@IvanMalison): Hmmm. it kind of feels like this should be
-#     #         # somewhere else.
-#     #         cassette._save()
+        data_members = {
+            "name": name,
+            "mode": mode or RecordMode.ONCE,
+            "serializer": JsonSerializer,
+            "records": records,
+            "already_loaded": True,
+            "output_dir": output_dir,
+            "last_cache_key": "",
+        }
+        self.query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
+        self.patcher = self._patch_generator()
 
-#     def __enter__(self):
-#         __import__("pdb").set_trace()
-#         import sqlalchemy.orm.query
+    def _patch_generator(self):
+        with patch('sqlalchemy.orm.query.Query', self.query_class):
+            with patch('sqlalchemy.orm.Query', self.query_class):
+                yield
 
+    def __enter__(self):
+        next(self.patcher)
 
-
-#         # monkeypatch.setattr(sqlalchemy.orm.query, "Query", CachingQuery)
-#         # monkeypatch.setattr(sqlalchemy.orm, "Query", CachingQuery)
-#         # yield
-#         # CachingQuery.save()
-
-#     def __exit__(self, *args):
-#         __import__("pdb").set_trace()
-
-@contextmanager
-def get_recorder(name, mode, output_dir):
-    import sqlalchemy.orm.query
-
-    # load records
-    records = []
-
-    data_members = {
-        "name": name,
-        "mode": mode or RecordMode.ONCE,
-        "serializer": JsonSerializer,
-        "records": records,
-        "already_loaded": True,
-        "output_dir": output_dir,
-        "last_cache_key": "",
-    }
-    query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
-
-
-    with patch('sqlalchemy.orm.query.Query', query_class):
-        yield
-
+    def __exit__(self, *args):
+        next(self.patcher, None)
+        self.query_class.save()
 
 
 class BaseCachingQuery(Query):
     def __iter__(self):
+
         if self.name is None:
             raise RuntimeError("CachingQuery.name is missing")
-        objects = list(super(BaseCachingQuery, self).__iter__())
+        objects = self.load_objects_from_cache(key)
+        list(super(BaseCachingQuery, self).__iter__())
         self.append_record(objects)
         return iter(objects)
 
@@ -104,7 +75,7 @@ class BaseCachingQuery(Query):
         key = " ".join(values)
         return key
 
-    def hashed_key(self):
+    def cache_key(self):
         key = self.key_from_query()
         key_plus_last_cache_key = "{}_{}".format(key, self.__class__.last_cache_key)
         hashed_key = hashlib.md5(key_plus_last_cache_key.encode("utf8")).hexdigest()
@@ -114,8 +85,8 @@ class BaseCachingQuery(Query):
     def _as_dict(self, objects):
         content = sa_serializer.dumps(objects)
         record_dict = {
-            "key": str(self.hashed_key()),
-            "value": str(content),
+            "key": self.hashed_key(),
+            "value": base64.b64encode(content).decode('utf-8'),
             "uri": str(self.session.get_bind().url),
             "statement": self.key_from_query(),
         }
@@ -131,7 +102,7 @@ class BaseCachingQuery(Query):
 
 class JsonSerializer:
     @classmethod
-    def load_record(cls, record_path):
+    def open_record(cls, record_path):
         try:
             return load_json(record_path)
         except OSError:
