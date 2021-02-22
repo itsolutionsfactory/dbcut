@@ -2,15 +2,17 @@ import hashlib
 import os
 import base64
 from enum import Enum
+from functools import lru_cache
+
 from mock import patch
 from contextlib import contextmanager
-
 
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import Query
 
 from dbcut.serializer import dump_json, load_json, to_json
 from dbcut.utils import sorted_nested_dict
+
 
 class Recorder:
     def __init__(self, name, mode, output_dir):
@@ -30,8 +32,8 @@ class Recorder:
         self.patcher = self._patch_generator()
 
     def _patch_generator(self):
-        with patch('sqlalchemy.orm.query.Query', self.query_class):
-            with patch('sqlalchemy.orm.Query', self.query_class):
+        with patch("sqlalchemy.orm.query.Query", self.query_class):
+            with patch("sqlalchemy.orm.Query", self.query_class):
                 yield
 
     def __enter__(self):
@@ -47,8 +49,9 @@ class BaseCachingQuery(Query):
 
         if self.name is None:
             raise RuntimeError("CachingQuery.name is missing")
+        key = self.cache_key()
         objects = self.load_objects_from_cache(key)
-        list(super(BaseCachingQuery, self).__iter__())
+        # objects = list(super(BaseCachingQuery, self).__iter__())
         self.append_record(objects)
         return iter(objects)
 
@@ -58,7 +61,7 @@ class BaseCachingQuery(Query):
 
     @classmethod
     def load(cls):
-        return JsonSerializer.load_record(cls.get_record_path())
+        return JsonSerializer.open_record(cls.get_record_path())
 
     def append_record(self, objects):
         record_dict = self._as_dict(objects)
@@ -75,6 +78,16 @@ class BaseCachingQuery(Query):
         key = " ".join(values)
         return key
 
+    def load_objects_from_cache(self, key):
+        data = self.load()
+        for dict in data:
+            if dict["key"] == key:
+                value = dict["value"]
+                byte_value = base64.b64decode(value)
+                return sa_serializer.loads(byte_value)
+
+    # without using lru_cache the cache key would not be unique
+    @lru_cache
     def cache_key(self):
         key = self.key_from_query()
         key_plus_last_cache_key = "{}_{}".format(key, self.__class__.last_cache_key)
@@ -85,8 +98,8 @@ class BaseCachingQuery(Query):
     def _as_dict(self, objects):
         content = sa_serializer.dumps(objects)
         record_dict = {
-            "key": self.hashed_key(),
-            "value": base64.b64encode(content).decode('utf-8'),
+            "key": self.cache_key(),
+            "value": base64.b64encode(content).decode("utf-8"),
             "uri": str(self.session.get_bind().url),
             "statement": self.key_from_query(),
         }
