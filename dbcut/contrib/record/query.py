@@ -1,6 +1,9 @@
 import hashlib
 import os
 from enum import Enum
+from mock import patch
+from contextlib import contextmanager
+
 
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import Query
@@ -8,17 +11,66 @@ from sqlalchemy.orm import Query
 from dbcut.serializer import dump_json, load_json, to_json
 from dbcut.utils import sorted_nested_dict
 
+# class Recorder:
+#     def __init__(self, name, mode, output_dir):
+#         data_members = {
+#             "name": name,
+#             "mode": mode or RecordMode.ONCE,
+#             "serializer": JsonSerializer,
+#             "records": [],
+#             "output_dir": output_dir,
+#             "last_cache_key": "",
+#         }
+#         self.query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
 
-def generate_caching_class(name, output_dir, mode=None):
+#     # def _patch_generator(self, cassette):
+#     #     with contextlib.ExitStack() as exit_stack:
+#     #         for patcher in CassettePatcherBuilder(cassette).build():
+#     #             exit_stack.enter_context(patcher)
+#     #         log_format = "{action} context for cassette at {path}."
+#     #         log.debug(log_format.format(action="Entering", path=cassette._path))
+#     #         yield cassette
+#     #         log.debug(log_format.format(action="Exiting", path=cassette._path))
+#     #         # TODO(@IvanMalison): Hmmm. it kind of feels like this should be
+#     #         # somewhere else.
+#     #         cassette._save()
+
+#     def __enter__(self):
+#         __import__("pdb").set_trace()
+#         import sqlalchemy.orm.query
+
+
+
+#         # monkeypatch.setattr(sqlalchemy.orm.query, "Query", CachingQuery)
+#         # monkeypatch.setattr(sqlalchemy.orm, "Query", CachingQuery)
+#         # yield
+#         # CachingQuery.save()
+
+#     def __exit__(self, *args):
+#         __import__("pdb").set_trace()
+
+@contextmanager
+def get_recorder(name, mode, output_dir):
+    import sqlalchemy.orm.query
+
+    # load records
+    records = []
+
     data_members = {
         "name": name,
         "mode": mode or RecordMode.ONCE,
         "serializer": JsonSerializer,
-        "records": [],
+        "records": records,
+        "already_loaded": True,
         "output_dir": output_dir,
         "last_cache_key": "",
     }
-    return type("CachingQuery", (BaseCachingQuery,), data_members)
+    query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
+
+
+    with patch('sqlalchemy.orm.query.Query', query_class):
+        yield
+
 
 
 class BaseCachingQuery(Query):
