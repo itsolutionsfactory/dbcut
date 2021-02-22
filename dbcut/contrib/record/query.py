@@ -34,32 +34,22 @@ class BaseCachingQuery(Query):
     last_cache_key = ""
     mode = RecordMode.ONCE
 
-    # def get_current_test_func(self):
-    #     i = 0
-    #     __import__("pdb").set_trace()
-    #     for s in inspect.stack():
-    #         if s.function == "pytest_pyfunc_call":
-    #             func_name = inspect.stack()[i - 1].function
-    #             return func_name
-    #         i += 1
-
     def __iter__(self):
         if self.namespace is None:
             raise RuntimeError("CachingQuery.namespace is missing")
-        self.key_from_query()
         objects = list(super(BaseCachingQuery, self).__iter__())
-        cassette_dict = self._as_dict(list(objects))
-        self.append_to_list_or_save_cassette(cassette_dict, JsonSerializer)
+        self.append_cassette(list(objects))
         return iter(objects)
 
-    def append_to_list_or_save_cassette(self, cassette_dict, serializer):
-        # curr_test_func = self.get_current_test_func()
-        # if self.test_func == "" or self.test_func == curr_test_func:
-        #     self.cassettes.append(cassette_dict)
-        #     self._test_func = curr_test_func
-        # else:
-        cassette_path = self.get_cassette_path()
-        FilesystemPersister.save_cassette(cassette_path, self.cassettes, serializer)
+    @classmethod
+    def save(cls):
+        FilesystemPersister.save_cassette(
+            cls.get_cassette_path(), cls.cassettes, cls.parser
+        )
+
+    def append_cassette(self, objects):
+        cassette_dict = self._as_dict(objects)
+        self.cassettes.append(cassette_dict)
 
     def key_from_query(self):
         stmt = self.with_labels().statement
@@ -70,24 +60,24 @@ class BaseCachingQuery(Query):
         for k in sorted(params):
             values.append(repr(params[k]))
         key = " ".join(values)
-        hashed_key = hashlib.md5(key.encode("utf8")).hexdigest()
-        # The first key will be based on the first query only
-        if self.last_cache_key == "":
-            self.last_cache_key = hashed_key
-            return hashed_key
-        else:
-            # The others will have the previous keys appended to them
-            hashed_key += self.last_cache_key
-            self.last_cache_key = hashed_key
-            return hashed_key
+        return key
+
+    def hashed_key(self):
+        key = self.key_from_query()
+        key_plus_last_cache_key = "{}_{}".format(key, self.__class__.last_cache_key)
+        hashed_key = hashlib.md5(key_plus_last_cache_key.encode("utf8")).hexdigest()
+        self.__class__.last_cache_key = hashed_key
+        # self.last_cache_key = hashed_key
+        return hashed_key
 
     def _as_dict(self, objects):
         try:
             content = dumps(objects)
             cassette_dict = {
-                "key": str(self.key_from_query()),
+                "key": str(self.hashed_key()),
                 "value": str(content),
                 "uri": str(self.session.get_bind().url),
+                "statement": self.key_from_query()
             }
             return cassette_dict
         except PicklingError:
@@ -110,12 +100,12 @@ class BaseCachingQuery(Query):
             return sqlparse.format(raw_sql, reindent=reindent)
         except ImportError:  # pragma: no cover
             return raw_sql
-
-    def get_cassette_path(self):
+    @classmethod
+    def get_cassette_path(cls):
         """
         Append function name to cassette dir
         """
-        return f"{self.cassette_dir}/{self.namespace}.json"
+        return f"{cls.cassette_dir}/{cls.namespace}.json"
 
     @cached_property
     def cache_key(self):
