@@ -11,7 +11,7 @@ class FilesystemPersister:
                 cassette_content = f.read()
         except OSError:
             raise ValueError("Cassette not found.")
-        cassette = serializer.deserialize(cassette_content, serializer)
+        cassette = serializer.deserialize(cassette_content)
         return cassette
 
     @staticmethod
