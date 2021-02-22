@@ -19,7 +19,7 @@ def generate_caching_class(namespace, output_dir, mode=RecordMode.ONCE):
     data_members = {
         'namespace': namespace,
         'mode': mode,
-        'cassettes': [],
+        'records': [],
         'cassette_dir': output_dir,
         'last_cache_key': ""
     }
@@ -29,8 +29,8 @@ def generate_caching_class(namespace, output_dir, mode=RecordMode.ONCE):
 class BaseCachingQuery(Query):
     cassette_dir = "dbcut_casette"
     namespace = None
-    cassettes = []
-    parser = JsonSerializer
+    records = []
+    serializer = JsonSerializer
     last_cache_key = ""
     mode = RecordMode.ONCE
 
@@ -38,18 +38,25 @@ class BaseCachingQuery(Query):
         if self.namespace is None:
             raise RuntimeError("CachingQuery.namespace is missing")
         objects = list(super(BaseCachingQuery, self).__iter__())
-        self.append_cassette(list(objects))
+        self.append_record(list(objects))
+        #
         return iter(objects)
 
     @classmethod
     def save(cls):
         FilesystemPersister.save_cassette(
-            cls.get_cassette_path(), cls.cassettes, cls.parser
+            cls.get_record_path(), cls.records, cls.serializer
         )
 
-    def append_cassette(self, objects):
+    @classmethod
+    def load(cls):
+        return FilesystemPersister.load_cassette(
+            cls.get_record_path(), cls.serializer
+        )
+
+    def append_record(self, objects):
         cassette_dict = self._as_dict(objects)
-        self.cassettes.append(cassette_dict)
+        self.records.append(cassette_dict)
 
     def key_from_query(self):
         stmt = self.with_labels().statement
@@ -67,7 +74,6 @@ class BaseCachingQuery(Query):
         key_plus_last_cache_key = "{}_{}".format(key, self.__class__.last_cache_key)
         hashed_key = hashlib.md5(key_plus_last_cache_key.encode("utf8")).hexdigest()
         self.__class__.last_cache_key = hashed_key
-        # self.last_cache_key = hashed_key
         return hashed_key
 
     def _as_dict(self, objects):
@@ -83,32 +89,10 @@ class BaseCachingQuery(Query):
         except PicklingError:
             pass
 
-    def render_query(self, reindent=True):
-        """Generate an SQL expression string with bound parameters rendered inline
-        for the given SQLAlchemy statement.
-        """
-
-        compiled = self.statement.compile(
-            dialect=self.session.get_bind().dialect,
-            compile_kwargs={"literal_binds": True},
-        )
-
-        raw_sql = str(compiled)
-        try:  # pragma: no cover
-            import sqlparse
-
-            return sqlparse.format(raw_sql, reindent=reindent)
-        except ImportError:  # pragma: no cover
-            return raw_sql
     @classmethod
-    def get_cassette_path(cls):
+    def get_record_path(cls):
         """
-        Append function name to cassette dir
+        Append function name to record dir
         """
         return f"{cls.cassette_dir}/{cls.namespace}.json"
 
-    @cached_property
-    def cache_key(self):
-        return hashlib.sha1(
-            to_json(sorted_nested_dict(self.info)).encode("utf-8")
-        ).hexdigest()
