@@ -102,7 +102,7 @@ class BaseCachingQuery(Query):
         return {
             "engine_info": self.session.bind.url.__to_string__(),
             "statement": str(self.with_labels().statement.compile()),
-            "params": [repr(p) for p in self.with_labels().statement.compile().params],
+            "params": self.with_labels().statement.compile().params,
             "iter_count": self.__class__.iter_count,
         }
 
