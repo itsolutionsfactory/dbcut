@@ -16,34 +16,20 @@ from dbcut.utils import sorted_nested_dict
 
 class Recorder:
     def __init__(self, name, mode, output_dir):
-        self.name = name
-        self.output_dir = output_dir
-        self.path = self.get_record_path()
-        self.records = self.load(self.path)
+        # load records
+        records = []
 
         data_members = {
             "name": name,
             "mode": mode or RecordMode.ONCE,
             "serializer": JsonSerializer,
-            "records": self.records,
+            "records": records,
             "already_loaded": True,
+            "output_dir": output_dir,
             "last_cache_key": "",
-            "path": self.path,
         }
         self.query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
         self.patcher = self._patch_generator()
-
-    def get_record_path(self):
-        """
-        Append function name to record dir
-        """
-        return "{}.json".format(os.path.join(self.output_dir, self.name))
-
-    def load(self, path):
-        return JsonSerializer.open_record(path)
-
-    def save(self):
-        JsonSerializer.save_record(self.records, self.path)
 
     def _patch_generator(self):
         with patch("sqlalchemy.orm.query.Query", self.query_class):
@@ -55,23 +41,31 @@ class Recorder:
 
     def __exit__(self, *args):
         next(self.patcher, None)
-        self.save()
+        self.query_class.save()
 
 
 class BaseCachingQuery(Query):
     def __iter__(self):
+
         if self.name is None:
             raise RuntimeError("CachingQuery.name is missing")
         key = self.cache_key()
-        # objects = self.load_objects_from_cache(key)
-        objects = list(super(BaseCachingQuery, self).__iter__())
+        objects = self.load_objects_from_cache(key)
+        # objects = list(super(BaseCachingQuery, self).__iter__())
         self.append_record(objects)
         return iter(objects)
 
+    @classmethod
+    def save(cls):
+        JsonSerializer.save_record(cls.records, cls.get_record_path())
+
+    @classmethod
+    def load(cls):
+        return JsonSerializer.open_record(cls.get_record_path())
+
     def append_record(self, objects):
         record_dict = self._as_dict(objects)
-        if record_dict["key"] not in [key["key"] for key in self.records]:
-            self.records.append(record_dict)
+        self.records.append(record_dict)
 
     def key_from_query(self):
         stmt = self.with_labels().statement
@@ -110,6 +104,13 @@ class BaseCachingQuery(Query):
             "statement": self.key_from_query(),
         }
         return record_dict
+
+    @classmethod
+    def get_record_path(cls):
+        """
+        Append function name to record dir
+        """
+        return "{}.json".format(os.path.join(cls.output_dir, cls.name))
 
 
 class JsonSerializer:
