@@ -101,8 +101,8 @@ class BaseCachingQuery(Query):
     def info(self):
         return {
             "engine_info": self.session.bind.url.__to_string__(),
-            "statement": render_query(self),
-            "tables": list(set([t.name for t in self.selectable.locate_all_froms()])),
+            "statement": str(self.with_labels().statement.compile()),
+            "params": [repr(p) for p in self.with_labels().statement.compile().params],
             "iter_count": self.__class__.iter_count,
         }
 
