@@ -18,7 +18,7 @@ class Recorder:
         # load records
         self.name = name
         self.record_mode = mode or RecordMode.ONCE
-        self.output_dir = output_dir or os.path.join(os.getcwd(), "db-records")
+        self.output_dir = output_dir or os.path.join(os.getcwd(), "dbcut-records")
         self.records = self.open()
 
         if self.record_mode == RecordMode.ALL:
@@ -112,9 +112,9 @@ class CachingQuery(Query):
 
     @property
     def cache_key(self):
-        return hashlib.sha1(
-            to_json(sorted_nested_dict(self.info)).encode("utf-8")
-        ).hexdigest()
+        query_info = self.info
+        unhashed_key = query_info["statement"] + str(query_info["iter_count"])
+        return hashlib.sha1(unhashed_key.encode("utf-8")).hexdigest()
 
     def dump_record(self, objects):
         record = self.info.copy()
