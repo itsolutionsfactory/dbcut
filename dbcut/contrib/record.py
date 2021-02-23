@@ -3,15 +3,14 @@ import os
 import base64
 from enum import Enum
 
-from mock import patch
 from contextlib import contextmanager
 
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import Query
 
-from dbcut.serializer import dump_json, load_json, to_json
-from dbcut.utils import sorted_nested_dict
-from dbcut.query import render_query
+from ..serializer import dump_json, load_json, to_json
+from ..utils import sorted_nested_dict, monkeypatched
+from ..query import render_query
 
 
 class Recorder:
@@ -57,8 +56,9 @@ class Recorder:
                 return record
 
     def _patch_generator(self):
-        with patch("sqlalchemy.orm.query.Query", self.query_class):
-            with patch("sqlalchemy.orm.Query", self.query_class):
+        import sqlalchemy.orm.query
+        with monkeypatched(sqlalchemy.orm.query, "Query", self.query_class):
+            with monkeypatched(sqlalchemy.orm, "Query", self.query_class):
                 yield
 
     def __enter__(self):
