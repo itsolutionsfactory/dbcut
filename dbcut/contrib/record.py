@@ -18,7 +18,7 @@ class Recorder:
         # load records
         self.name = name
         self.record_mode = mode or RecordMode.ONCE
-        self.output_dir = output_dir or os.path.join(os.getcwd(), "dbcut-records")
+        self.output_dir = output_dir or os.path.join(os.getcwd(), "dbcut_records")
         self.records = self.open()
 
         if self.record_mode == RecordMode.ALL:
