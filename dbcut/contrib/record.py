@@ -24,19 +24,11 @@ class Recorder:
         if self.record_mode == RecordMode.ALL:
             self.records.clear()
 
-        data_members = {
-            "recorder": self,
-            "record_mode": self.record_mode,
-            "cached_keys": [r["key"] for r in self.records],
-            "iter_count": 0,
-        }
-
-        self.query_class = type("CachingQuery", (BaseCachingQuery,), data_members)
         self.patcher = self._patch_generator()
 
     @property
-    def record_path(cls):
-        return "{}.json".format(os.path.join(cls.output_dir, cls.name))
+    def record_path(self):
+        return "{}.json".format(os.path.join(self.output_dir, self.name))
 
     def open(self):
         if os.path.exists(self.record_path):
@@ -57,8 +49,14 @@ class Recorder:
 
     def _patch_generator(self):
         import sqlalchemy.orm.query
-        with monkeypatched(sqlalchemy.orm.query, "Query", self.query_class):
-            with monkeypatched(sqlalchemy.orm, "Query", self.query_class):
+
+        CachingQuery.recorder = self
+        CachingQuery.record_mode = self.record_mode
+        CachingQuery.cached_keys = [r["key"] for r in self.records]
+        CachingQuery.iter_count = 0
+
+        with monkeypatched(sqlalchemy.orm.query, "Query", CachingQuery):
+            with monkeypatched(sqlalchemy.orm, "Query", CachingQuery):
                 yield
 
     def __enter__(self):
@@ -69,9 +67,15 @@ class Recorder:
         self.save()
 
 
-class BaseCachingQuery(Query):
+class CachingQuery(Query):
+
+    recorder = None
+    record_mode = None
+    cached_keys = []
+    iter_count = 0
+
     def fetch_from_database(self):
-        return list(super(BaseCachingQuery, self).__iter__())
+        return list(super(CachingQuery, self).__iter__())
 
     def fetch_from_cache(self):
         record = self.recorder.load_record(self.cache_key)
@@ -88,7 +92,7 @@ class BaseCachingQuery(Query):
             objects = self.fetch_from_database()
             self.recorder.records.append(self.dump_record(objects))
 
-        self.__class__.iter_count += 1
+        CachingQuery.iter_count += 1
         return iter(objects)
 
     @property
