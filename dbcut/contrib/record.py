@@ -79,7 +79,8 @@ class CachingQuery(Query):
 
     def fetch_from_cache(self):
         record = self.recorder.load_record(self.cache_key)
-        return sa_serializer.loads(base64.b64decode(record["data"]))
+        cached_value = sa_serializer.loads(base64.b64decode(record["data"]))
+        return self.merge_result(cached_value, load=False)
 
     def __iter__(self):
         if self.cache_key in self.cached_keys:
