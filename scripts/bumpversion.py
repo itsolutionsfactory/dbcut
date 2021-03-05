@@ -27,17 +27,17 @@ def get_release_date():
 def bump_release_version(args):
     """Automated software release workflow
 
-  * Bumps the release version number (with .bumpversion.cfg)
-  * Preloads the correct changelog template for editing
-  * Builds a source distribution
-  * Sets release date
-  * Tags the release
+      * Bumps the release version number (with .bumpversion.cfg)
+      * Preloads the correct changelog template for editing
+      * Builds a source distribution
+      * Sets release date
+      * Tags the release
 
-You can run it like::
+    You can run it like::
 
-    $ python bumpversion.py
+        $ python bumpversion.py
 
-which will create a 'release' version (Eg. 0.7.2-dev => 0.7.2).
+    which will create a 'release' version (Eg. 0.7.2-dev => 0.7.2).
 
     """
     # Dry run 'bumpversion' to find out what the new version number
@@ -90,20 +90,20 @@ which will create a 'release' version (Eg. 0.7.2-dev => 0.7.2).
 def bump_new_version(args):
     """Increment the version number to the next development version
 
-  * Bumps the development version number (with .bumpversion.cfg)
-  * Preloads the correct changelog template for editing
+      * Bumps the development version number (with .bumpversion.cfg)
+      * Preloads the correct changelog template for editing
 
-You can run it like::
+    You can run it like::
 
-    $ python bumpversion.py newversion
+        $ python bumpversion.py newversion
 
-which, by default, will create a 'patch' dev version (0.0.1 => 0.0.2-dev).
+    which, by default, will create a 'patch' dev version (0.0.1 => 0.0.2-dev).
 
-You can also specify a patch level (patch, minor, major) to change to::
+    You can also specify a patch level (patch, minor, major) to change to::
 
-    $ python bumpversion.py newversion major
+        $ python bumpversion.py newversion major
 
-which will create a 'major' release (0.0.2 => 1.0.0-dev)."""
+    which will create a 'major' release (0.0.2 => 1.0.0-dev)."""
     pass
     # Dry run 'bumpversion' to find out what the new version number
     # would be. Useful side effect: exits if the working directory is not

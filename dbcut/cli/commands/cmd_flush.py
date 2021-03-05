@@ -9,7 +9,10 @@ from ..operations import flush, purge_cache
 @click.command("flush")
 @profiler_option()
 @click.option(
-    "--with-cache", is_flag=True, default=False, help="Also delete all cache",
+    "--with-cache",
+    is_flag=True,
+    default=False,
+    help="Also delete all cache",
 )
 @global_options()
 @pass_context

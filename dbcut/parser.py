@@ -115,8 +115,7 @@ uncache_module(
 
 
 def parse_query(qd, session, config):
-    """Parses the given query dictionary to produce a BaseQuery object.
-    """
+    """Parses the given query dictionary to produce a BaseQuery object."""
     from mlalchemy.parser import parse_query as mlalchemy_parse_query
 
     defaults = {
