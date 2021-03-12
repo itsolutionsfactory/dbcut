@@ -1,16 +1,15 @@
+import base64
 import hashlib
 import os
-import base64
-from enum import Enum
-
 from contextlib import contextmanager
+from enum import Enum
 
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import Query
 
-from ..serializer import dump_json, load_json, to_json
-from ..utils import sorted_nested_dict, monkeypatched
 from ..query import render_query
+from ..serializer import dump_json, load_json, to_json
+from ..utils import monkeypatched, sorted_nested_dict
 
 
 class Recorder:
