@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # coding: utf8
+import itertools
 import os
 import pickle
 import sys
@@ -149,14 +150,18 @@ class classproperty(object):  # noqa
         return self.fget(owner_cls)
 
 
-def generate_valid_index_name(index, dialect):
+def generate_valid_index_name(index, dialect, exclude=[]):
     table_name = index.table.name
     columns_names = "_".join([cn.name for cn in index.columns])
     if index.unique:
-        full_index_name = "%s_%s_unique_idx" % (table_name, columns_names)
+        index_name = "%s_%s_unique_idx" % (table_name, columns_names)
     else:
-        full_index_name = "%s_%s_idx" % (table_name, columns_names)
-    return full_index_name
+        index_name = "%s_%s_idx" % (table_name, columns_names)
+
+    for indice in itertools.count(start=1):
+        full_index_name = "{}_{}".format(index_name, indice)
+        if full_index_name not in exclude:
+            return full_index_name
 
 
 def aslist(generator):

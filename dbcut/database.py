@@ -187,8 +187,14 @@ class Database(object):
                     if constraint.name:
                         constraint.name = conv(constraint.name)
 
+            generated_indexes = set()
             for index in self.get_all_indexes():
-                index.name = conv(generate_valid_index_name(index, self.engine.dialect))
+                index.name = conv(
+                    generate_valid_index_name(
+                        index, self.engine.dialect, exclude=generated_indexes
+                    )
+                )
+                generated_indexes.add(index.name)
                 mysql_length = {}
 
                 if self.engine.dialect.name == "mysql":
