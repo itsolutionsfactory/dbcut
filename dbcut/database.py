@@ -350,13 +350,12 @@ class Database(object):
                 yield table.name, con.execute(count_query).scalar()
 
     def _name_for_scalar_relationship(self, base, local_cls, referred_cls, constraint):
-        name = referred_cls.__name__.lower()
         try:
-            column_name = list(constraint.columns)[0].name
-            name = column_name.strip("_id")
+            relationship_name = list(constraint.columns)[0].name.strip("_id")
+            assert relationship_name not in local_cls.__table__.columns
+            return relationship_name
         except:
-            pass
-        return name
+            return referred_cls.__name__.lower()
 
     def _name_for_collection_relationship(
         self, base, local_cls, referred_cls, constraint
