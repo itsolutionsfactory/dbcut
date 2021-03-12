@@ -55,6 +55,14 @@ def compile_postgresql_datetime(type_, compiler, **kw):
     return "TIMESTAMP WITHOUT TIME ZONE"
 
 
+@compiles(mysql.TIMESTAMP, "sqlite")
+def compile_sqlite_timestamp(type_, compiler, **kw):
+    if kw["type_expression"].server_default:
+        if "current_timestamp" in kw["type_expression"].server_default.arg.text:
+            kw["type_expression"].server_default.arg.text = "CURRENT_TIMESTAMP"
+    return "TIMESTAMP"
+
+
 @compiles(Insert, "postgresql")
 def compile_insert_on_duplicate_ignore_postgresql(element, compiler, **kw):
     return "%s ON CONFLICT DO NOTHING" % compiler.visit_insert(element, **kw)
