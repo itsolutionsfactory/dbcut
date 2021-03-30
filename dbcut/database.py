@@ -448,7 +448,7 @@ class EngineConnector(object):
                     )
                     options["connect_args"] = connect_args
                     if info.drivername == "mysql":
-                        info.query.setdefault("charset", "utf8")
+                        connect_args.setdefault("charset", "utf8")
                         options.setdefault("pool_size", 10)
                         options.setdefault("pool_recycle", 3600)
 

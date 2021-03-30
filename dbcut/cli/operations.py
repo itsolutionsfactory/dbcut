@@ -3,12 +3,12 @@ import os
 from contextlib import contextmanager
 from itertools import chain
 
-from sqlalchemy_utils.functions import create_database, database_exists, drop_database
 from tabulate import tabulate
 from tqdm import tqdm
 
 from ..parser import parse_query
 from ..serializer import dump_yaml
+from ..sqlalchemy_utils import create_database, database_exists, drop_database
 from ..utils import get_directory_size, to_unicode
 
 
