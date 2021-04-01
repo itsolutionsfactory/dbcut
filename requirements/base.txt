@@ -1,6 +1,5 @@
 Click
 SQLAlchemy
-SQLAlchemy-Utils
 mlalchemy
 pptree
 python-dotenv
