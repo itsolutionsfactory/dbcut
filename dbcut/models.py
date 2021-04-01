@@ -29,11 +29,6 @@ class BaseModel(object):
             ordering_list = [c.desc() for c in cls.__table__.primary_key.columns]
             return ordering_list
 
-    @declared_attr
-    def __mapper_args__(cls):  # noqa
-        ordering_keys = cls._default_ordering
-        return {"order_by": ordering_keys} if ordering_keys is not None else {}
-
     def __to_dict__(self, excluded_keys=set()):
         return {
             key: getattr(self, key)
