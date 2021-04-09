@@ -3,7 +3,7 @@
 import click
 
 from ..context import global_options, pass_context, profiler_option
-from ..operations import flush, purge_cache
+from ..operations import flush
 
 
 @click.command("flush")
