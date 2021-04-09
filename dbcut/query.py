@@ -8,21 +8,14 @@ import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import (
-    Bundle,
-    Query,
-    class_mapper,
-    interfaces,
-    joinedload,
-    selectinload,
-)
+from sqlalchemy.orm import (Bundle, Query, class_mapper, interfaces,
+                            joinedload, selectinload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient, object_session
 
+from . import SQLALCHEMY_VERSION
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
-
-VISITED_QUERIES = WeakSet()
 
 
 class BaseQuery(Query):
@@ -32,10 +25,13 @@ class BaseQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
-        event.listen(
-            self, "before_compile", self._apply_backref_collection_limit, retval=True
-        )
-        VISITED_QUERIES.add(self)
+        if SQLALCHEMY_VERSION < "1.4.0":
+            event.listen(
+                self,
+                "before_compile",
+                lambda query: _apply_backref_limit(query, self.session),
+                retval=True,
+            )
 
     class QueryStr(str):
         # Useful for debug
@@ -96,7 +92,11 @@ class BaseQuery(Query):
 
     @property
     def model_class(self):
-        return self.session.db.models[self._bind_mapper().class_.__name__]
+        if hasattr(self, "_bind_mapper"):
+            mapper = self._bind_mapper()
+        else:
+            mapper = self._only_full_mapper_zero("get")
+        return self.session.db.models[mapper.class_.__name__]
 
     def save_to_cache(self, objects=None):
         if objects is None:
@@ -227,33 +227,6 @@ class BaseQuery(Query):
             elif relationship.direction is interfaces.MANYTOONE:
                 query = query.options(joinedload(path))
 
-        return query
-
-    def _apply_backref_collection_limit(self, query):
-        def query_with_limit(query):
-            for visited_query in VISITED_QUERIES:
-                query_dict = getattr(visited_query, "query_dict", None)
-                if query_dict is not None:
-                    return query.limit(query_dict.get("backref_limit", None) or None)
-            return query
-
-        if query._attributes:
-            for keyattr in query._attributes.keys():
-                if isinstance(keyattr, tuple):
-                    key = keyattr[0]
-                    if key == "orig_query":
-                        # this is a sub query
-                        orig_query = query._attributes[keyattr]
-                        if orig_query.query_dict:
-                            return query_with_limit(query)
-            for desc in query.column_descriptions:
-                if (
-                    desc["entity"] is None
-                    and desc["name"] == "pk"
-                    and desc["type"] == Bundle
-                ):
-                    # this is a selectin query
-                    return query_with_limit(query)
         return query
 
 
@@ -463,3 +436,16 @@ def get_manytoone_relationships_first(model):
         return 1
 
     return sorted(model.__mapper__.relationships.values(), key=key)
+
+
+def _apply_backref_limit(query, session):
+    parsed_query = session.parsed_query
+
+    for desc in query.column_descriptions:
+        if desc["entity"] is None and desc["name"] == "pk" and desc["type"] == Bundle:
+            # this is a selectin query
+            backref_limit = parsed_query.query_dict.get("backref_limit", None)
+            if backref_limit:
+                query = query.limit(backref_limit)
+
+    return query

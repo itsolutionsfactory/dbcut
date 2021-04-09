@@ -180,5 +180,6 @@ def parse_query(qd, session, config):
     )
 
     query = mlquery.apply_filters(query)
+    query.session.parsed_query = query
 
     return query

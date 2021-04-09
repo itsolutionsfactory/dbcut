@@ -8,6 +8,7 @@ import sys
 import threading
 from contextlib import contextmanager
 
+import sqlalchemy
 from sqlalchemy import MetaData, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
@@ -99,7 +100,8 @@ class Database(object):
             )
         else:
             db_cache_dir = os.path.join(self.uri.drivername, self.uri.database)
-        _cache_dir = os.path.join(self.global_cache_dir, VERSION, db_cache_dir)
+        cache_version = "{}-sa-{}".format(VERSION, sqlalchemy.__version__)
+        _cache_dir = os.path.join(self.global_cache_dir, cache_version, db_cache_dir)
         create_directory(_cache_dir)
         return _cache_dir
 
