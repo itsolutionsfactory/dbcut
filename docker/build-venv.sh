@@ -10,7 +10,6 @@ pip install -U pip
 
 for filename in /app/requirements/*.txt; do
     pip install -r $filename
-    pip install git+https://github.com/dmvass/sqlalchemy-easy-profile.git
 done
 
 rm -rf /root/.cache
