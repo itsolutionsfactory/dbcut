@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from click.testing import CliRunner
-
 from dbcut.cli.main import main
 
 DEFAULT_YML = """
@@ -84,7 +83,7 @@ databases:
 mysql_postgres_databases = """
 databases:
   source_uri: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}
-  destination_uri: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB_2}
+  destination_uri: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB_2}
 """
 
 
