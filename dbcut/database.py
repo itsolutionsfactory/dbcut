@@ -16,18 +16,13 @@ from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 from sqlalchemy.types import Text
 
-from . import VERSION
+from . import SQLALCHEMY_VERSION, VERSION
 from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (
-    aslist,
-    cached_property,
-    create_directory,
-    generate_valid_index_name,
-    to_unicode,
-)
+from .utils import (aslist, cached_property, create_directory,
+                    generate_valid_index_name, to_unicode)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -462,7 +457,11 @@ class EngineConnector(object):
                             pass
 
                     elif info.drivername == "postgresql":
-                        options.setdefault("use_batch_mode", True)
+                        if SQLALCHEMY_VERSION >= "1.4.0":
+                            options.setdefault("executemany_mode", "batch")
+                            options.setdefault("executemany_batch_page_size", 5000)
+                        else:
+                            options.setdefault("use_batch_mode", True)
 
                 elif info.drivername == "sqlite":
                     no_pool = options.get("pool_size") == 0
