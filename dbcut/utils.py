@@ -4,12 +4,14 @@ import itertools
 import os
 import pickle
 import sys
+import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from io import BytesIO, StringIO
 from string import Template
 
 from pptree import print_tree
+from sqlalchemy import exc as sa_exc
 
 from .exceptions import UndefinedError
 
@@ -277,3 +279,10 @@ def pickle_copy(obj):
     pickle.dump(obj, file=buf)
     buf.seek(0)
     return pickle.load(buf)
+
+
+@contextmanager
+def silent_sqlalchemy_warnings():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=sa_exc.SAWarning)
+        yield

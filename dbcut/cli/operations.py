@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ..parser import parse_query
 from ..serializer import dump_yaml
 from ..sqlalchemy_utils import create_database, database_exists, drop_database
-from ..utils import get_directory_size, to_unicode
+from ..utils import get_directory_size, silent_sqlalchemy_warnings, to_unicode
 
 
 def get_raw_queries(ctx):
@@ -183,7 +183,8 @@ def clear(ctx):
 
 def load(ctx):
     sync_schema(ctx)
-    load_data(ctx)
+    with silent_sqlalchemy_warnings():
+        load_data(ctx)
 
 
 def inspect_db(ctx):
