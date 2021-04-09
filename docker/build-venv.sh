@@ -8,9 +8,10 @@ source /venv/bin/activate
 
 pip install -U pip
 
-for filename in /app/requirements/*.txt; do
-    pip install -r $filename
-done
+pip install -r /app/requirements/base.txt
+pip install -r /app/requirements/test.txt
+pip install -r /app/requirements/postgresql.txt
+pip install -r /app/requirements/mysql.txt
 
 rm -rf /root/.cache
 
