@@ -9,7 +9,7 @@ import threading
 from contextlib import contextmanager
 
 import sqlalchemy
-from sqlalchemy import MetaData, create_engine, event, func, inspect
+from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.schema import conv
@@ -86,6 +86,7 @@ class Database(object):
 
         event.listen(self.engine, "before_cursor_execute", self._before_custor_execute)
         event.listen(self.engine, "after_cursor_execute", self._after_custor_execute)
+        event.listen(Table, "after_parent_attach", self._after_parent_attach)
 
     @cached_property
     def cache_dir(self):
@@ -406,6 +407,25 @@ class Database(object):
                     self._echo_statement(cursor._last_executed)
             if conn.engine.dialect.name == "postgresql":
                 self._echo_statement(cursor.query)
+
+    def _after_parent_attach(self, target, parent):
+        if not target.primary_key:
+            # If target is a not many-to-many table
+            if not len(target.foreign_key_constraints) == 2 and all(
+                c.foreign_keys for c in target.c
+            ):
+                fake_pks = []
+                for fake_pk in ["id", "uuid"]:
+                    if fake_pk in target.c:
+                        fake_pks.append(target.c.get(fake_pk))
+                        break
+
+                if not fake_pks:
+                    fake_pks = [c for c in target.c if c.name.endswith("_id")]
+
+                for fake_pk in fake_pks:
+                    fake_pk.primary_key = True
+                    target.primary_key.columns.add(fake_pk)
 
     def __contains__(self, member):
         return member in self.tables or member in self.models
