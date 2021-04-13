@@ -8,14 +8,8 @@ import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import (
-    Bundle,
-    Query,
-    class_mapper,
-    interfaces,
-    joinedload,
-    selectinload,
-)
+from sqlalchemy.orm import (Bundle, Query, class_mapper, interfaces,
+                            joinedload, selectinload, subqueryload)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient, object_session
 
@@ -230,6 +224,8 @@ class BaseQuery(Query):
         for relationship, path, weight in sorted(relations_to_load, key=lambda x: x[1]):
             if relationship.direction is interfaces.ONETOMANY:
                 query = query.options(selectinload(path))
+            elif relationship.direction is interfaces.MANYTOMANY:
+                query = query.options(selectinload(path))
             elif relationship.direction is interfaces.MANYTOONE:
                 query = query.options(joinedload(path))
 
@@ -276,7 +272,10 @@ class RelationTree(object):
         self.children = []
 
         if relationship is not None:
-            if self.relationship.direction is interfaces.ONETOMANY:
+            if self.relationship.direction in (
+                interfaces.ONETOMANY,
+                interfaces.MANYTOMANY,
+            ):
                 self.repr_name = "─ⁿ─{}".format(self.name)
             else:
                 self.repr_name = "─¹─{}".format(self.name)
@@ -319,7 +318,7 @@ def get_relationships(model):
 
 def get_relationship_path(relationship):
     local_table_name = relationship.parent.class_._table_info["table_name"]
-    if relationship.direction is interfaces.ONETOMANY:
+    if relationship.direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY):
         key = relationship.key
     else:
         key = list(relationship.local_columns)[0].name
@@ -328,7 +327,7 @@ def get_relationship_path(relationship):
 
 def get_relationship_reverse_path(relationship):
     remote_table_name = relationship.target.name
-    if relationship.direction is interfaces.ONETOMANY:
+    if relationship.direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY):
         key = list(relationship.remote_side)[0].name
     else:
         key = relationship.back_populates
@@ -368,14 +367,18 @@ def breadth_first_load_generator(
                 target_model = models_to_browse[relationship.target.name]
                 if relationship_path not in already_seen_relationships_path:
                     if (
-                        relationship.direction is interfaces.ONETOMANY
+                        relationship.direction
+                        in (interfaces.ONETOMANY, interfaces.MANYTOMANY)
                         and (backref_depth is None or backref_depth > 0)
                         and relationship.target.name not in already_browse_models
                     ) or (
                         relationship.direction is interfaces.MANYTOONE
                         and (join_depth is None or join_depth > 0)
                     ):
-                        if relationship.direction is interfaces.ONETOMANY:
+                        if relationship.direction in (
+                            interfaces.ONETOMANY,
+                            interfaces.MANYTOMANY,
+                        ):
                             next_weight = weight * 2
                         else:
                             next_weight = weight * 1
