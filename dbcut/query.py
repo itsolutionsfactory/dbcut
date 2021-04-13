@@ -8,8 +8,15 @@ import yaml
 from pptree import print_tree
 from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
-from sqlalchemy.orm import (Bundle, Query, class_mapper, interfaces,
-                            joinedload, selectinload, subqueryload)
+from sqlalchemy.orm import (
+    Bundle,
+    Query,
+    class_mapper,
+    interfaces,
+    joinedload,
+    selectinload,
+    subqueryload,
+)
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient, object_session
 
