@@ -52,10 +52,6 @@ def generate_pipelines():
     write(
         Template(read(".ci/travis.yml.j2")).render(pipelines=pipelines), ".travis.yml"
     )
-    write(
-        Template(read(".ci/gitlab-ci.yml.j2")).render(pipelines=pipelines),
-        ".gitlab-ci.yml",
-    )
 
 
 if __name__ == "__main__":
