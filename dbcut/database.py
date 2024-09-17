@@ -9,6 +9,7 @@ import threading
 from contextlib import contextmanager
 
 import sqlalchemy
+from geoalchemy2 import Geometry
 from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
@@ -21,8 +22,13 @@ from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, create_directory,
-                    generate_valid_index_name, to_unicode)
+from .utils import (
+    aslist,
+    cached_property,
+    create_directory,
+    generate_valid_index_name,
+    to_unicode,
+)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter

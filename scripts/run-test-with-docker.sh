@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 ROOT_PROJECT="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
 
+if ! command -v "docker-compose" >/dev/null
+then
+    compose="docker compose"
+else
+    compose="docker-compose"
+fi
+
 
 export PYTHON_IMAGE=${PYTHON_IMAGE:-python:3.6}
 export POSTGRES_IMAGE=${POSTGRES_IMAGE:-postgres:9.6}
@@ -34,7 +41,7 @@ _print() { printf "\033[1;32m%b\033[0m\n" "$1"; }
 
 _cleanup() {
     _print ":: Cleanup"
-    docker-compose down -v --remove-orphans
+    $compose down -v --remove-orphans
 }
 
 if [ "$1" = "cleanup" ]; then
@@ -46,8 +53,8 @@ else
     _cleanup
 
     _print ":: Building image"
-    docker-compose build
+    $compose build
 
     _print ":: Running tests"
-    docker-compose run --rm app make test
+    $compose run --rm app make test
 fi

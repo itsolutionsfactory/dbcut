@@ -7,6 +7,8 @@ from collections import OrderedDict
 from io import open
 
 import yaml
+from geoalchemy2 import WKBElement
+from geoalchemy2.shape import to_shape
 from sqlalchemy.orm import Query
 
 from .utils import to_unicode
@@ -49,6 +51,8 @@ def new_json_encoder():
                     pass
             elif hasattr(obj, "__iter__"):
                 return list(item for item in obj)
+            elif isinstance(obj, WKBElement):
+                return str(to_shape(obj))
             return super(JSONEncoder, self).default(obj)
 
     return JSONEncoder

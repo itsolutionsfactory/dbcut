@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <http://keepachangelog.com/en/1.0.0/>`_, and this project adheres to `Semantic Versioning <http://semver.org/spec/v2.0.0.html>`_.
 
+Version 0.6.2
+------------------
+
+Released on September 13th 2024
+
+Added
+-----
+- Geometry field in sqlalchemy
 
 Version 0.6.1.dev0
 ------------------
