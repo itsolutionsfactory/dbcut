@@ -53,7 +53,7 @@ clean-test:  ## Eemove test and coverage artifacts
 	rm -fr htmlcov/
 
 test:  ## Run tests quickly with the default Python
-	@echo SQLAlchemy $(shell pip show SQLAlchemy  | grep Version)
+	@echo SQLAlchemy $(shell uv pip show SQLAlchemy 2>/dev/null | grep Version)
 	pytest --cov=dbcut --cov-report html --cov-report term:skip-covered
 
 coverage: ## Check code coverage quickly with the default Python

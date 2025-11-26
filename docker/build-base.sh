@@ -13,7 +13,7 @@ else
     apt-get install -y --no-install-recommends libmysqlclient-dev
 fi
 
-apt-get install -y libpq-dev make
+apt-get install -y libpq-dev make curl
 
 # Cleanup
 apt-get clean -y

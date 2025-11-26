@@ -1,0 +1,102 @@
+[project]
+name = "dbcut"
+version = "0.6.1.dev0"
+description = "Extract a lightweight subset of your relational production database for development and testing purpose."
+readme = "README.rst"
+requires-python = ">=3.10"
+license = { text = "MIT license" }
+authors = [
+    { name = "Salem Harrache", email = "dev@salem.harrache.info" },
+]
+keywords = ["dbcut"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "click==8.3.1",
+    "sqlalchemy==2.0.44",
+    "mlalchemy==0.2.2",
+    "pptree==3.1",
+    "python-dotenv==1.2.1",
+    "tabulate==0.9",
+    "tqdm==4.67.1",
+]
+
+[dependency-groups]
+dev = [
+    "flake8>=6.0",
+    "pdbpp==0.11.7",
+    "twine==6.2.0",
+    "jinja2==3.1.6",
+    "pyyaml==6.0.3",
+    "black==25.11.0",
+    "isort==5.12",
+    "pytest==9.0.1",
+    "pytest-cov==7.0.0",
+    "pytest-sugar==1.1.1",
+    "coverage==7.12.0",
+]
+
+[project.optional-dependencies]
+mysql = ["mysqlclient==2.2.7"]
+postgresql = ["psycopg2-binary==2.9.11"]
+profiler = [
+    "sqlalchemy-easy-profile==1.3.0",
+    "sqlparse==0.5.3",
+]
+fastjson = ["orjson==3.11.4"]
+
+[project.scripts]
+dbcut = "dbcut.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/itsolutionsfactory/dbcut"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["dbcut"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["dbcut"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
