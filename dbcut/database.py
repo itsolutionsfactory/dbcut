@@ -21,8 +21,13 @@ from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, create_directory,
-                    generate_valid_index_name, to_unicode)
+from .utils import (
+    aslist,
+    cached_property,
+    create_directory,
+    generate_valid_index_name,
+    to_unicode,
+)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -112,7 +117,7 @@ class Database(object):
 
     @property
     def engine(self):
-        """Gives access to the engine. """
+        """Gives access to the engine."""
         with self._engine_lock:
             if self.connector is None:
                 self.connector = EngineConnector(self)
@@ -226,7 +231,7 @@ class Database(object):
         return indexes
 
     def create_all(self, bind=None, **kwargs):
-        """Creates all tables. """
+        """Creates all tables."""
         if bind is None:
             bind = self.engine
         self.metadata.create_all(bind=bind, **kwargs)
@@ -281,7 +286,7 @@ class Database(object):
 
     @contextmanager
     def no_fkc_session(self):
-        """ A context manager that give a session with all foreign key constraints disabled. """
+        """A context manager that give a session with all foreign key constraints disabled."""
         scoped_session = self.session
         try:
             scoped_session.remove()
@@ -293,7 +298,9 @@ class Database(object):
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
                     session.execute(
-                        text("ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name)
+                        text(
+                            "ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name
+                        )
                     )
 
             yield session
@@ -314,7 +321,7 @@ class Database(object):
             scoped_session.remove()
 
     def show(self):
-        """ Return small database content representation."""
+        """Return small database content representation."""
         for model_name in sorted(self.models.keys()):
             data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
@@ -328,8 +335,10 @@ class Database(object):
         with self.engine.connect() as con:
             if estimate and self.dialect == "mysql":
                 rows = con.execute(
-                    text("SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
-                    % self.engine.url.database)
+                    text(
+                        "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
+                        % self.engine.url.database
+                    )
                 ).fetchall()
                 for row in rows:
                     # In SQLAlchemy 1.4+, use tuple indices
@@ -354,7 +363,7 @@ class Database(object):
             relationship_name = list(constraint.columns)[0].name.strip("_id")
             assert relationship_name not in local_cls.__table__.columns
             return relationship_name
-        except:
+        except Exception:
             return referred_cls.__name__.lower()
 
     def _name_for_collection_relationship(
@@ -364,7 +373,7 @@ class Database(object):
         try:
             column_name = list(constraint.columns)[0].name
             name = column_name.strip("_id") + "_" + referred_cls_name + "_collection"
-        except:
+        except Exception:
             name = referred_cls_name + "_collection"
         return name
 

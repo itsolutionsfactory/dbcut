@@ -196,7 +196,9 @@ class BaseQuery(Query):
                 )
                 for relationship, path, weight, path_list in other_relations:
                     if path in leaf_relationship[1]:
-                        direct_paths.append(tuple([relationship, path, weight, path_list]))
+                        direct_paths.append(
+                            tuple([relationship, path, weight, path_list])
+                        )
 
                 return direct_paths
 
@@ -232,8 +234,10 @@ class BaseQuery(Query):
                         # Get next model
                         try:
                             current_model = rel_attr.property.mapper.class_
-                        except:
-                            current_model = self.session.db.models.get(rel_attr.property.target.name)
+                        except Exception:
+                            current_model = self.session.db.models.get(
+                                rel_attr.property.target.name
+                            )
                 else:
                     # Fallback to old behavior (should not happen with our changes)
                     query = query.join(*leaf_path.split("."), isouter=True)
@@ -247,7 +251,9 @@ class BaseQuery(Query):
         # Keep only the longest paths to avoid applying multiple strategies on the same path
         deduplicated_relations = []
         seen_prefixes = set()
-        for relationship, path, weight, path_list in sorted(relations_to_load, key=lambda x: x[1], reverse=True):
+        for relationship, path, weight, path_list in sorted(
+            relations_to_load, key=lambda x: x[1], reverse=True
+        ):
             # Check if this path is a prefix of any already seen path
             is_prefix = False
             for seen_path in seen_prefixes:
@@ -285,7 +291,11 @@ class BaseQuery(Query):
                     # Chain subsequent relationships
                     if i == len(path_list) - 1:
                         # Last relationship, apply the appropriate loader
-                        loader_option = loader_option.selectinload(rel_attr) if loader_func == selectinload else loader_option.joinedload(rel_attr)
+                        loader_option = (
+                            loader_option.selectinload(rel_attr)
+                            if loader_func == selectinload
+                            else loader_option.joinedload(rel_attr)
+                        )
                     else:
                         # Intermediate relationship, use selectinload
                         loader_option = loader_option.selectinload(rel_attr)
@@ -294,9 +304,11 @@ class BaseQuery(Query):
                 if i < len(path_list) - 1:
                     try:
                         current_model = rel_attr.property.mapper.class_
-                    except:
+                    except Exception:
                         # Fallback to using the relationship target
-                        current_model = self.session.db.models.get(rel_attr.property.target.name)
+                        current_model = self.session.db.models.get(
+                            rel_attr.property.target.name
+                        )
 
             if loader_option is not None:
                 query = query.options(loader_option)
@@ -455,7 +467,9 @@ def breadth_first_load_generator(
                         else:
                             next_weight = weight * 1
 
-                        relations_to_load.append((relationship, full_path, next_weight, tuple(next_path)))
+                        relations_to_load.append(
+                            (relationship, full_path, next_weight, tuple(next_path))
+                        )
                         next_models.append(
                             (target_model, next_path, relationship, next_weight)
                         )

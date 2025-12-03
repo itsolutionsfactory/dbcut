@@ -11,5 +11,5 @@ from ..operations import purge_cache
 @global_options()
 @pass_context
 def cli(ctx, **kwargs):
-    """ Remove all cached queries."""
+    """Remove all cached queries."""
     purge_cache(ctx)

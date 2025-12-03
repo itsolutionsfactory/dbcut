@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 
 
 def read(fname):
-    """ Return the file content. """
+    """Return the file content."""
     here = op.abspath(op.dirname(__file__))
     with open(op.join(here, fname), "r", "utf-8") as fd:
         return fd.read()

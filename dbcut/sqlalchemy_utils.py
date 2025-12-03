@@ -57,7 +57,7 @@ def quote(mixed, ident):
         dialect = mixed
     else:
         # For SQLAlchemy 1.4+ compatibility, handle Engine and Connection directly
-        if hasattr(mixed, 'dialect'):
+        if hasattr(mixed, "dialect"):
             dialect = mixed.dialect
         else:
             dialect = get_bind(mixed).dialect
