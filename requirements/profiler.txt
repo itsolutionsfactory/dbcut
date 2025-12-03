@@ -1,2 +1,2 @@
-sqlalchemy-easy-profile
-sqlparse
+sqlalchemy-easy-profile==1.3.0
+sqlparse==0.5.4

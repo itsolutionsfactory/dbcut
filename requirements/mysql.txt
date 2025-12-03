@@ -1,1 +1,1 @@
-mysqlclient
+mysqlclient==2.2.7
