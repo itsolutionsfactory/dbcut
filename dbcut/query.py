@@ -184,9 +184,9 @@ class BaseQuery(Query):
                 direct_paths = []
                 leaf_relationship = None
                 relations = sorted(relations_to_load, key=lambda x: x[2])
-                for relationship, path, weight in relations:
+                for relationship, path, weight, path_list in relations:
                     if relationship.target.name == target_name:
-                        leaf_relationship = (relationship, path, weight)
+                        leaf_relationship = (relationship, path, weight, path_list)
                         break
                 if leaf_relationship is None:
                     return []
@@ -194,9 +194,9 @@ class BaseQuery(Query):
                 other_relations = sorted(
                     list(set(relations) - set([leaf_relationship])), key=lambda x: x[1]
                 )
-                for relationship, path, weight in other_relations:
+                for relationship, path, weight, path_list in other_relations:
                     if path in leaf_relationship[1]:
-                        direct_paths.append(tuple([relationship, path, weight]))
+                        direct_paths.append(tuple([relationship, path, weight, path_list]))
 
                 return direct_paths
 
@@ -218,23 +218,88 @@ class BaseQuery(Query):
                     leaf_relationships.append(direct_paths[0])
                     new_relations_to_load.extend(get_direct_path(target_name))
             relations_to_load = new_relations_to_load
-            cut_relation_tree([r for r, p, w in relations_to_load], root_node)
+            cut_relation_tree([r for r, p, w, *_ in relations_to_load], root_node)
 
-            for _, leaf_path, _ in leaf_relationships:
-                query = query.join(*leaf_path.split("."), isouter=True)
+            for _, leaf_path, *rest in leaf_relationships:
+                # Extract path_list from rest (rest is [weight, path_list])
+                if len(rest) >= 2:
+                    path_list = rest[1]
+                    # Build joins using actual relationship attributes
+                    current_model = query.model_class
+                    for key in path_list:
+                        rel_attr = getattr(current_model, key)
+                        query = query.join(rel_attr, isouter=True)
+                        # Get next model
+                        try:
+                            current_model = rel_attr.property.mapper.class_
+                        except:
+                            current_model = self.session.db.models.get(rel_attr.property.target.name)
+                else:
+                    # Fallback to old behavior (should not happen with our changes)
+                    query = query.join(*leaf_path.split("."), isouter=True)
 
             if leaf_relationships:
                 query = query.group_by(query.model_class)
 
         query.relation_tree = root_node
 
-        for relationship, path, weight in sorted(relations_to_load, key=lambda x: x[1]):
+        # Deduplicate loader options to avoid conflicts
+        # Keep only the longest paths to avoid applying multiple strategies on the same path
+        deduplicated_relations = []
+        seen_prefixes = set()
+        for relationship, path, weight, path_list in sorted(relations_to_load, key=lambda x: x[1], reverse=True):
+            # Check if this path is a prefix of any already seen path
+            is_prefix = False
+            for seen_path in seen_prefixes:
+                if seen_path.startswith(path + ".") or seen_path == path:
+                    is_prefix = True
+                    break
+            if not is_prefix:
+                deduplicated_relations.append((relationship, path, weight, path_list))
+                seen_prefixes.add(path)
+
+        for relationship, path, weight, path_list in deduplicated_relations:
+            # Determine the loader function based on relationship direction
+            loader_func = None
             if relationship.direction is interfaces.ONETOMANY:
-                query = query.options(selectinload(path))
+                loader_func = selectinload
             elif relationship.direction is interfaces.MANYTOMANY:
-                query = query.options(selectinload(path))
+                loader_func = selectinload
             elif relationship.direction is interfaces.MANYTOONE:
-                query = query.options(joinedload(path))
+                loader_func = joinedload
+
+            # Construct the relationship path from the root model
+            current_model = query.model_class
+            loader_option = None
+            for i, key in enumerate(path_list):
+                rel_attr = getattr(current_model, key)
+                if i == 0:
+                    # First relationship in the path
+                    if len(path_list) == 1:
+                        # Only one relationship, apply the loader directly
+                        loader_option = loader_func(rel_attr)
+                    else:
+                        # Multiple relationships, use selectinload for the first
+                        loader_option = selectinload(rel_attr)
+                else:
+                    # Chain subsequent relationships
+                    if i == len(path_list) - 1:
+                        # Last relationship, apply the appropriate loader
+                        loader_option = loader_option.selectinload(rel_attr) if loader_func == selectinload else loader_option.joinedload(rel_attr)
+                    else:
+                        # Intermediate relationship, use selectinload
+                        loader_option = loader_option.selectinload(rel_attr)
+
+                # Get the next model from the relationship
+                if i < len(path_list) - 1:
+                    try:
+                        current_model = rel_attr.property.mapper.class_
+                    except:
+                        # Fallback to using the relationship target
+                        current_model = self.session.db.models.get(rel_attr.property.target.name)
+
+            if loader_option is not None:
+                query = query.options(loader_option)
 
         return query
 
@@ -390,7 +455,7 @@ def breadth_first_load_generator(
                         else:
                             next_weight = weight * 1
 
-                        relations_to_load.append((relationship, full_path, next_weight))
+                        relations_to_load.append((relationship, full_path, next_weight, tuple(next_path)))
                         next_models.append(
                             (target_model, next_path, relationship, next_weight)
                         )

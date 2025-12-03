@@ -2,7 +2,7 @@
 ROOT_PROJECT="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
 
 
-export PYTHON_IMAGE=${PYTHON_IMAGE:-python:3.6}
+export PYTHON_IMAGE=${PYTHON_IMAGE:-python:3.7}
 export POSTGRES_IMAGE=${POSTGRES_IMAGE:-postgres:9.6}
 export MYSQL_IMAGE=${MYSQL_IMAGE:-mariadb:10.3}
 export PROJECT_DIR=${TRAVIS_BUILD_DIR:-${CI_PROJECT_DIR:-$(git rev-parse --show-toplevel)}}
