@@ -16,7 +16,7 @@ from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 from sqlalchemy.types import Text
 
-from . import SQLALCHEMY_VERSION, VERSION
+from . import VERSION
 from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
@@ -486,14 +486,6 @@ class EngineConnector(object):
                             connect_args.update({"cursorclass": SSCursor})
                         except ImportError:
                             pass
-
-                    elif info.drivername == "postgresql":
-                        if SQLALCHEMY_VERSION >= "1.4.0":
-                            # In SQLAlchemy 1.4+ with Python 3.7, executemany_mode may not be available
-                            # Skip these options to avoid compatibility issues
-                            pass
-                        else:
-                            options.setdefault("use_batch_mode", True)
 
                 elif info.drivername == "sqlite":
                     no_pool = options.get("pool_size") == 0

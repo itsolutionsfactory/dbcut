@@ -20,7 +20,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient, object_session
 
-from . import SQLALCHEMY_VERSION
 from .serializer import dump_json, load_json, to_json
 from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
 
@@ -32,13 +31,6 @@ class BaseQuery(Query):
 
     def __init__(self, *args, **kwargs):
         super(BaseQuery, self).__init__(*args, **kwargs)
-        if SQLALCHEMY_VERSION < "1.4.0":
-            event.listen(
-                self,
-                "before_compile",
-                lambda query: _apply_backref_limit(query, self.session),
-                retval=True,
-            )
 
     class QueryStr(str):
         # Useful for debug
