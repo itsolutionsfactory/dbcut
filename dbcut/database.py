@@ -9,20 +9,25 @@ import threading
 from contextlib import contextmanager
 
 import sqlalchemy
-from sqlalchemy import MetaData, Table, create_engine, event, func, inspect
+from sqlalchemy import MetaData, Table, create_engine, event, func, inspect, text
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy.schema import conv
 from sqlalchemy.sql.expression import select
 from sqlalchemy.types import Text
 
-from . import SQLALCHEMY_VERSION, VERSION
+from . import VERSION
 from .configuration import DEFAULT_CONFIG
 from .models import BaseDeclarativeMeta, BaseModel
 from .query import BaseQuery, QueryProperty
 from .session import SessionProperty
-from .utils import (aslist, cached_property, create_directory,
-                    generate_valid_index_name, to_unicode)
+from .utils import (
+    aslist,
+    cached_property,
+    create_directory,
+    generate_valid_index_name,
+    to_unicode,
+)
 
 try:
     from easy_profile import SessionProfiler, StreamReporter
@@ -112,7 +117,7 @@ class Database(object):
 
     @property
     def engine(self):
-        """Gives access to the engine. """
+        """Gives access to the engine."""
         with self._engine_lock:
             if self.connector is None:
                 self.connector = EngineConnector(self)
@@ -226,7 +231,7 @@ class Database(object):
         return indexes
 
     def create_all(self, bind=None, **kwargs):
-        """Creates all tables. """
+        """Creates all tables."""
         if bind is None:
             bind = self.engine
         self.metadata.create_all(bind=bind, **kwargs)
@@ -275,37 +280,39 @@ class Database(object):
                            AND table_schema NOT IN ('pg_catalog', 'information_schema');
                 """
             if query:
-                return [t[0] for t in conn.execute(query).fetchall()]
+                return [t[0] for t in conn.execute(text(query)).fetchall()]
             else:
                 return []
 
     @contextmanager
     def no_fkc_session(self):
-        """ A context manager that give a session with all foreign key constraints disabled. """
+        """A context manager that give a session with all foreign key constraints disabled."""
         scoped_session = self.session
         try:
             scoped_session.remove()
             session = scoped_session()
             if session.bind.dialect.name == "mysql":
-                session.execute("SET FOREIGN_KEY_CHECKS = 0")
+                session.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
             elif session.bind.dialect.name == "sqlite":
-                session.execute("PRAGMA foreign_keys = OFF")
+                session.execute(text("PRAGMA foreign_keys = OFF"))
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
                     session.execute(
-                        "ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name
+                        text(
+                            "ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name
+                        )
                     )
 
             yield session
 
             if session.bind.dialect.name == "mysql":
-                session.execute("SET FOREIGN_KEY_CHECKS = 1")
+                session.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
             elif session.bind.dialect.name == "sqlite":
-                session.execute("PRAGMA foreign_keys = ON")
+                session.execute(text("PRAGMA foreign_keys = ON"))
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
                     session.execute(
-                        "ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name
+                        text("ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name)
                     )
 
             session.close()
@@ -314,37 +321,41 @@ class Database(object):
             scoped_session.remove()
 
     def show(self):
-        """ Return small database content representation."""
+        """Return small database content representation."""
         for model_name in sorted(self.models.keys()):
             data = [inspect(i).identity for i in self.models[model_name].query.all()]
             print(model_name.ljust(25), data)
 
     @aslist
     def count_all(self, estimate=True):
-        metadata = MetaData(self.engine)
+        metadata = MetaData()
         metadata.reflect(bind=self.engine)
         tables = dict(((t.name, t) for t in metadata.sorted_tables))
         table_names = list(tables.keys())
         with self.engine.connect() as con:
             if estimate and self.dialect == "mysql":
                 rows = con.execute(
-                    "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
-                    % self.engine.url.database
-                )
+                    text(
+                        "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
+                        % self.engine.url.database
+                    )
+                ).fetchall()
                 for row in rows:
-                    if row["table_name"] in table_names:
-                        if row["table_rows"] > 0:
-                            tables.pop(row["table_name"])
-                            yield row["table_name"], row["table_rows"]
+                    # In SQLAlchemy 1.4+, use tuple indices
+                    table_name, table_rows = row[0], row[1]
+                    if table_name in table_names:
+                        if table_rows > 0:
+                            tables.pop(table_name)
+                            yield table_name, table_rows
 
             for table in tables.values():
                 pks = sorted(
                     (c for c in table.c if c.primary_key), key=lambda c: c.name
                 )
                 if pks:
-                    count_query = select([func.count(pks[0])]).select_from(table)
+                    count_query = select(func.count(pks[0])).select_from(table)
                 else:
-                    count_query = select([func.count()]).select_from(table)
+                    count_query = select(func.count()).select_from(table)
                 yield table.name, con.execute(count_query).scalar()
 
     def _name_for_scalar_relationship(self, base, local_cls, referred_cls, constraint):
@@ -352,7 +363,7 @@ class Database(object):
             relationship_name = list(constraint.columns)[0].name.strip("_id")
             assert relationship_name not in local_cls.__table__.columns
             return relationship_name
-        except:
+        except Exception:
             return referred_cls.__name__.lower()
 
     def _name_for_collection_relationship(
@@ -362,7 +373,7 @@ class Database(object):
         try:
             column_name = list(constraint.columns)[0].name
             name = column_name.strip("_id") + "_" + referred_cls_name + "_collection"
-        except:
+        except Exception:
             name = referred_cls_name + "_collection"
         return name
 
@@ -475,13 +486,6 @@ class EngineConnector(object):
                             connect_args.update({"cursorclass": SSCursor})
                         except ImportError:
                             pass
-
-                    elif info.drivername == "postgresql":
-                        if SQLALCHEMY_VERSION >= "1.4.0":
-                            options.setdefault("executemany_mode", "batch")
-                            options.setdefault("executemany_batch_page_size", 5000)
-                        else:
-                            options.setdefault("use_batch_mode", True)
 
                 elif info.drivername == "sqlite":
                     no_pool = options.get("pool_size") == 0

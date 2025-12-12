@@ -182,7 +182,7 @@ class Context(object):
         if isinstance(exc_value, (click.ClickException, click.Abort)) or self.debug:
             reraise(exc_type, exc_value, tb.tb_next)
         else:
-            sys.stderr.write(u"\nError: %s\n" % exc_value)
+            sys.stderr.write("\nError: %s\n" % exc_value)
             sys.exit(1)
 
 
@@ -198,7 +198,7 @@ def make_pass_decorator(context_klass, ensure=True):
             obj.update_options(**kwargs)
             try:
                 return ctx.invoke(f, obj, *args[1:], **kwargs)
-            except:
+            except Exception:
                 obj.handle_error()
 
         return update_wrapper(new_func, f)
@@ -267,7 +267,7 @@ def profiler_option():
                 default=False,
                 help="Enables queries profiling.",
             )(f)
-        except:
+        except Exception:
             pass
         return f
 

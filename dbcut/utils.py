@@ -258,9 +258,9 @@ def monkeypatched(owner, attr, value):
 
 
 def get_directory_size(directory):
-    """" Get directory disk usage in MB"""
+    """ " Get directory disk usage in MB"""
     directory_size = 0
-    for (path, dirs, files) in os.walk(directory):
+    for path, dirs, files in os.walk(directory):
         for file in files:
             directory_size += os.path.getsize(os.path.join(path, file))
     return directory_size / (1024 * 1024.0)
