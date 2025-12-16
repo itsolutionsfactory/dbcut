@@ -83,9 +83,7 @@ class CachingQuery(Query):
             objects = self.fetch_from_cache()
         else:
             if self.write_protected:
-                raise Exception(
-                    f"Cannot overwrite existing record '{self.recorder.name}'"
-                )
+                raise Exception(f"Cannot overwrite existing record '{self.recorder.name}'")
             objects = self.fetch_from_database()
             self.recorder.records.append(self.dump_record(objects))
 
@@ -94,9 +92,7 @@ class CachingQuery(Query):
 
     @property
     def write_protected(self):
-        return (
-            len(self.cached_keys) and self.record_mode == RecordMode.ONCE
-        ) or self.record_mode == RecordMode.NONE
+        return (len(self.cached_keys) and self.record_mode == RecordMode.ONCE) or self.record_mode == RecordMode.NONE
 
     @property
     def info(self):

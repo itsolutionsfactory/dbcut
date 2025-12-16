@@ -40,9 +40,7 @@ class BaseQuery(Query):
 
     @cached_property
     def query_yaml(self):
-        return yaml.dump(
-            dict(self.query_dict), default_flow_style=False, sort_keys=False
-        )
+        return yaml.dump(dict(self.query_dict), default_flow_style=False, sort_keys=False)
 
     @cached_property
     def info(self):
@@ -54,9 +52,7 @@ class BaseQuery(Query):
 
     @cached_property
     def cache_key(self):
-        return hashlib.sha1(
-            to_json(sorted_nested_dict(self.info)).encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha1(to_json(sorted_nested_dict(self.info)).encode("utf-8")).hexdigest()
 
     @property
     def cache_basename(self):
@@ -79,9 +75,7 @@ class BaseQuery(Query):
     @property
     def is_cached(self):
         if self.query_dict is not None:
-            return os.path.isfile(self.cache_file) and os.path.isfile(
-                self.count_cache_file
-            )
+            return os.path.isfile(self.cache_file) and os.path.isfile(self.count_cache_file)
         return False
 
     @property
@@ -130,20 +124,12 @@ class BaseQuery(Query):
                 make_transient(instance)
             yield obj
 
-    def with_loaded_relations(
-        self, max_join_depth, max_backref_depth, exclude, include
-    ):
+    def with_loaded_relations(self, max_join_depth, max_backref_depth, exclude, include):
         query = self._clone()
         models_to_exclude = [
-            self.session.db.models.get(table_name)
-            for table_name in exclude
-            if table_name in self.session.db.models
+            self.session.db.models.get(table_name) for table_name in exclude if table_name in self.session.db.models
         ]
-        models_to_browse = {
-            k: v
-            for k, v in self.session.db.models.items()
-            if v not in models_to_exclude
-        }
+        models_to_browse = {k: v for k, v in self.session.db.models.items() if v not in models_to_exclude}
         models_to_load = dict(models_to_browse)
 
         relations_to_load = []
@@ -178,9 +164,7 @@ class BaseQuery(Query):
                 if leaf_relationship is None:
                     return []
                 direct_paths = [leaf_relationship]
-                other_relations = sorted(
-                    set(relations) - {leaf_relationship}, key=lambda x: x[1]
-                )
+                other_relations = sorted(set(relations) - {leaf_relationship}, key=lambda x: x[1])
                 for relationship, path, weight, path_list in other_relations:
                     if path in leaf_relationship[1]:
                         direct_paths.append((relationship, path, weight, path_list))
@@ -220,9 +204,7 @@ class BaseQuery(Query):
                         try:
                             current_model = rel_attr.property.mapper.class_
                         except Exception:
-                            current_model = self.session.db.models.get(
-                                rel_attr.property.target.name
-                            )
+                            current_model = self.session.db.models.get(rel_attr.property.target.name)
                 else:
                     # Fallback to old behavior (should not happen with our changes)
                     query = query.join(*leaf_path.split("."), isouter=True)
@@ -236,9 +218,7 @@ class BaseQuery(Query):
         # Keep only the longest paths to avoid applying multiple strategies.
         deduplicated_relations = []
         seen_prefixes = set()
-        for relationship, path, weight, path_list in sorted(
-            relations_to_load, key=lambda x: x[1], reverse=True
-        ):
+        for relationship, path, weight, path_list in sorted(relations_to_load, key=lambda x: x[1], reverse=True):
             # Check if this path is a prefix of any already seen path
             is_prefix = False
             for seen_path in seen_prefixes:
@@ -291,9 +271,7 @@ class BaseQuery(Query):
                         current_model = rel_attr.property.mapper.class_
                     except Exception:
                         # Fallback to using the relationship target
-                        current_model = self.session.db.models.get(
-                            rel_attr.property.target.name
-                        )
+                        current_model = self.session.db.models.get(rel_attr.property.target.name)
 
             if loader_option is not None:
                 query = query.options(loader_option)
@@ -319,9 +297,7 @@ def render_query(query, reindent=True):
     for the given SQLAlchemy statement.
     """
 
-    compiled = query.statement.compile(
-        dialect=query.session.get_bind().dialect, compile_kwargs={"literal_binds": True}
-    )
+    compiled = query.statement.compile(dialect=query.session.get_bind().dialect, compile_kwargs={"literal_binds": True})
 
     raw_sql = str(compiled)
     try:  # pragma: no cover
@@ -367,13 +343,7 @@ class RelationTree:
 
         tables = self.flatten
 
-        value = (
-            stream.getvalue()
-            + "\n\n"
-            + "%s table" % len(tables)
-            + ("s" if len(tables) > 1 else "")
-            + " loaded\n"
-        )
+        value = stream.getvalue() + "\n\n" + "%s table" % len(tables) + ("s" if len(tables) > 1 else "") + " loaded\n"
         if return_value:
             return value
         else:
@@ -436,14 +406,10 @@ def breadth_first_load_generator(
                 target_model = models_to_browse[relationship.target.name]
                 if relationship_path not in already_seen_relationships_path:
                     if (
-                        relationship.direction
-                        in (interfaces.ONETOMANY, interfaces.MANYTOMANY)
+                        relationship.direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY)
                         and (backref_depth is None or backref_depth > 0)
                         and relationship.target.name not in already_browse_models
-                    ) or (
-                        relationship.direction is interfaces.MANYTOONE
-                        and (join_depth is None or join_depth > 0)
-                    ):
+                    ) or (relationship.direction is interfaces.MANYTOONE and (join_depth is None or join_depth > 0)):
                         if relationship.direction in (
                             interfaces.ONETOMANY,
                             interfaces.MANYTOMANY,
@@ -452,27 +418,17 @@ def breadth_first_load_generator(
                         else:
                             next_weight = weight * 1
 
-                        relations_to_load.append(
-                            (relationship, full_path, next_weight, tuple(next_path))
-                        )
-                        next_models.append(
-                            (target_model, next_path, relationship, next_weight)
-                        )
+                        relations_to_load.append((relationship, full_path, next_weight, tuple(next_path)))
+                        next_models.append((target_model, next_path, relationship, next_weight))
             yield relationship
         already_browse_models.append(model_name)
 
     join_depth = max(0, join_depth - 1) if join_depth is not None else join_depth
-    backref_depth = (
-        max(0, backref_depth - 1) if backref_depth is not None else backref_depth
-    )
+    backref_depth = max(0, backref_depth - 1) if backref_depth is not None else backref_depth
     nodes = []
 
-    for next_model, next_path, relationship, next_weight in sorted(
-        next_models, key=lambda x: x[3]
-    ):
-        next_node = RelationTree(
-            next_model.__name__, root_node, relationship, next_weight
-        )
+    for next_model, next_path, relationship, next_weight in sorted(next_models, key=lambda x: x[3]):
+        next_node = RelationTree(next_model.__name__, root_node, relationship, next_weight)
         gen = breadth_first_load_generator(
             relations_to_load,
             next_node,

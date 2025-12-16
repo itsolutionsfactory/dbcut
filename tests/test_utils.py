@@ -36,9 +36,7 @@ def test_nested_dicts_are_sorted():
         "a": {"b": 1, "a": 2},
         "b": 3,
     }
-    expected = OrderedDict(
-        [("a", OrderedDict([("a", 2), ("b", 1)])), ("b", 3), ("c", 1)]
-    )
+    expected = OrderedDict([("a", OrderedDict([("a", 2), ("b", 1)])), ("b", 3), ("c", 1)])
     assert expected == sorted_nested_dict(data)
 
 

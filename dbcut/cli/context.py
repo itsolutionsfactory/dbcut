@@ -56,9 +56,7 @@ class Context:
 
     @cached_property
     def dest_db_uri(self):
-        destination_uri = expand_env_variables(
-            self.config["databases"]["destination_uri"]
-        )
+        destination_uri = expand_env_variables(self.config["databases"]["destination_uri"])
         return make_url(destination_uri)
 
     @cached_property
@@ -102,16 +100,12 @@ class Context:
             handler.setFormatter(AnsiColorFormatter())
 
         @event.listens_for(Engine, "before_cursor_execute")
-        def before_cursor_execute(
-            conn, cursor, statement, parameters, context, executemany
-        ):
+        def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
             conn.info.setdefault("query_start_time", []).append(time.time())
             self.logger.debug("Start Query on %s: \n%s\n" % (conn.engine, statement))
 
         @event.listens_for(Engine, "after_cursor_execute")
-        def after_cursor_execute(
-            conn, cursor, statement, parameters, context, executemany
-        ):
+        def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
             total = time.time() - conn.info["query_start_time"].pop(-1)
             self.logger.debug("Query Complete!")
             self.logger.debug("Total Time: %f" % total)
@@ -133,9 +127,7 @@ class Context:
                 kwargs["nl"] = True
             if tty_truncate:
                 if self.is_tty:
-                    message = "\n".join(
-                        msg[: self.tty_columns] for msg in message.split("\n")
-                    )
+                    message = "\n".join(msg[: self.tty_columns] for msg in message.split("\n"))
             if not self.dump_sql:
                 click.echo(message, **kwargs)
 
@@ -278,12 +270,8 @@ def profiler_option():
 def global_options(default_quiet=False):
     def decorator(f):
         options = [
-            click.option(
-                "--verbose", is_flag=True, default=False, help="Enables verbose output."
-            ),
-            click.option(
-                "--debug", is_flag=True, default=False, help="Enables debug mode."
-            ),
+            click.option("--verbose", is_flag=True, default=False, help="Enables verbose output."),
+            click.option("--debug", is_flag=True, default=False, help="Enables debug mode."),
             click.option(
                 "--quiet",
                 "--no-quiet",

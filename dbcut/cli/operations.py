@@ -88,9 +88,7 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
     ctx.log("")
     ctx.log(dump_yaml(query.query_dict), prefix="    ")
     ctx.log("", quietable=True)
-    ctx.log(
-        query.relation_tree.render(return_value=True), tty_truncate=True, quietable=True
-    )
+    ctx.log(query.relation_tree.render(return_value=True), tty_truncate=True, quietable=True)
     if ctx.no_cache:
         ctx.log(" ---> Cache : disabled", quietable=True)
     else:
@@ -218,9 +216,7 @@ def inspect_db(ctx):
     ctx.log(" ---> Cache ")
     ctx.log("")
     ctx.log("location : %s" % ctx.config["cache"], prefix="    ")
-    ctx.log(
-        "Disk usage : %.1f MB" % get_directory_size(ctx.config["cache"]), prefix="    "
-    )
+    ctx.log("Disk usage : %.1f MB" % get_directory_size(ctx.config["cache"]), prefix="    ")
     ctx.log("")
 
 
@@ -232,11 +228,7 @@ def purge_cache(ctx):
             for file in f:
                 yield os.path.join(r, file)
 
-    file_names = [
-        fn
-        for fn in listfiles(ctx.config["cache"])
-        if any(fn.endswith(ext) for ext in included_extensions)
-    ]
+    file_names = [fn for fn in listfiles(ctx.config["cache"]) if any(fn.endswith(ext) for ext in included_extensions)]
 
     for file in file_names:
         os.remove(file)

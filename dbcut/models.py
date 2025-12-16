@@ -30,10 +30,7 @@ class BaseModel:
     def __to_dict__(self, excluded_keys=None):
         if excluded_keys is None:
             excluded_keys = set()
-        return {
-            key: getattr(self, key)
-            for key in get_entity_loaded_propnames(self, excluded_keys)
-        }
+        return {key: getattr(self, key) for key in get_entity_loaded_propnames(self, excluded_keys)}
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__, inspect(self).identity)

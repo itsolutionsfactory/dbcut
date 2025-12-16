@@ -93,9 +93,7 @@ class Database:
     @cached_property
     def cache_dir(self):
         if self.uri.host:
-            db_cache_dir = os.path.join(
-                self.uri.drivername, self.uri.host, self.uri.database
-            )
+            db_cache_dir = os.path.join(self.uri.drivername, self.uri.host, self.uri.database)
         else:
             db_cache_dir = os.path.join(self.uri.drivername, self.uri.database)
         cache_version = f"{VERSION}-sa-{sqlalchemy.__version__}"
@@ -189,11 +187,7 @@ class Database:
 
             generated_indexes = set()
             for index in self.get_all_indexes():
-                index.name = conv(
-                    generate_valid_index_name(
-                        index, self.engine.dialect, exclude=generated_indexes
-                    )
-                )
+                index.name = conv(generate_valid_index_name(index, self.engine.dialect, exclude=generated_indexes))
                 generated_indexes.add(index.name)
                 mysql_length = {}
 
@@ -294,11 +288,7 @@ class Database:
                 session.execute(text("PRAGMA foreign_keys = OFF"))
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
-                    session.execute(
-                        text(
-                            "ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name
-                        )
-                    )
+                    session.execute(text("ALTER TABLE IF EXISTS %s DISABLE TRIGGER ALL" % table_name))
 
             yield session
 
@@ -308,9 +298,7 @@ class Database:
                 session.execute(text("PRAGMA foreign_keys = ON"))
             elif session.bind.dialect.name == "postgresql":
                 for table_name in self.tables:
-                    session.execute(
-                        text("ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name)
-                    )
+                    session.execute(text("ALTER TABLE IF EXISTS %s ENABLE TRIGGER ALL" % table_name))
 
             session.close()
         finally:
@@ -345,9 +333,7 @@ class Database:
                             yield table_name, table_rows
 
             for table in tables.values():
-                pks = sorted(
-                    (c for c in table.c if c.primary_key), key=lambda c: c.name
-                )
+                pks = sorted((c for c in table.c if c.primary_key), key=lambda c: c.name)
                 if pks:
                     count_query = select(func.count(pks[0])).select_from(table)
                 else:
@@ -362,9 +348,7 @@ class Database:
         except Exception:
             return referred_cls.__name__.lower()
 
-    def _name_for_collection_relationship(
-        self, base, local_cls, referred_cls, constraint
-    ):
+    def _name_for_collection_relationship(self, base, local_cls, referred_cls, constraint):
         referred_cls_name = referred_cls.__name__.lower()
         try:
             column_name = list(constraint.columns)[0].name
@@ -373,15 +357,11 @@ class Database:
             name = referred_cls_name + "_collection"
         return name
 
-    def _gen_relationship(
-        self, base, direction, return_fn, attrname, local_cls, referred_cls, **kw
-    ):
+    def _gen_relationship(self, base, direction, return_fn, attrname, local_cls, referred_cls, **kw):
         kw["lazy"] = "noload"
         kw["cascade"] = "all"
         kw["post_update"] = True
-        return generate_relationship(
-            base, direction, return_fn, attrname, local_cls, referred_cls, **kw
-        )
+        return generate_relationship(base, direction, return_fn, attrname, local_cls, referred_cls, **kw)
 
     def _echo_statement(self, stm):
         text = to_unicode(stm)
@@ -394,18 +374,12 @@ class Database:
         self.echo_stream.write(";\n")
         self.echo_stream.flush()
 
-    def _before_custor_execute(
-        self, conn, cursor, statement, parameters, context, executemany
-    ):
+    def _before_custor_execute(self, conn, cursor, statement, parameters, context, executemany):
         if self.echo_sql:
             if conn.engine.dialect.name == "sqlite":
-                conn.connection.connection.set_trace_callback(
-                    lambda x: self._echo_statement(x)
-                )
+                conn.connection.connection.set_trace_callback(lambda x: self._echo_statement(x))
 
-    def _after_custor_execute(
-        self, conn, cursor, statement, parameters, context, executemany
-    ):
+    def _after_custor_execute(self, conn, cursor, statement, parameters, context, executemany):
         if self.echo_sql:
             if conn.engine.dialect.name == "mysql":
                 if hasattr(cursor, "_executed"):
@@ -418,9 +392,7 @@ class Database:
     def _after_parent_attach(self, target, parent):
         if not target.primary_key:
             # If target is a not many-to-many table
-            if not len(target.foreign_key_constraints) == 2 and all(
-                c.foreign_keys for c in target.c
-            ):
+            if not len(target.foreign_key_constraints) == 2 and all(c.foreign_keys for c in target.c):
                 fake_pks = []
                 for fake_pk in ["id", "uuid"]:
                     if fake_pk in target.c:
@@ -467,9 +439,7 @@ class EngineConnector:
                 info = self._db.uri
                 if info.drivername in ("mysql", "postgresql"):
                     connect_args = dict(info.query)
-                    connect_args["connect_timeout"] = int(
-                        connect_args.get("connect_timeout", self.connect_timeout)
-                    )
+                    connect_args["connect_timeout"] = int(connect_args.get("connect_timeout", self.connect_timeout))
                     options["connect_args"] = connect_args
                     if info.drivername == "mysql":
                         connect_args.setdefault("charset", "utf8")

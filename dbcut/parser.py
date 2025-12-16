@@ -16,18 +16,10 @@ from .utils import merge_dicts, uncache_module
 class MLQuery(BaseMLQuery):
     def to_query(self, session, tables):
         if not isinstance(tables, dict):
-            raise TypeError(
-                "Supplied tables structure for MLQuery-to-SQLAlchemy "
-                "query conversion must be a dictionary"
-            )
+            raise TypeError("Supplied tables structure for MLQuery-to-SQLAlchemy query conversion must be a dictionary")
         if self.table not in tables:
-            raise InvalidTableError(
-                "Table does not exist in tables dictionary: %s" % self.table
-            )
-        logger.debug(
-            'Attempting to build SQLAlchemy query for table "%s":\n%s'
-            % (self.table, self)
-        )
+            raise InvalidTableError("Table does not exist in tables dictionary: %s" % self.table)
+        logger.debug('Attempting to build SQLAlchemy query for table "%s":\n%s' % (self.table, self))
         table = tables[self.table]
         return session.query(table)
 
@@ -43,9 +35,7 @@ class MLQuery(BaseMLQuery):
                 field, direction = list(order_by.items())[0]
                 criterion = getattr(table, field)
                 if not isinstance(criterion, QueryableAttribute):
-                    raise InvalidFieldError(
-                        "Invalid field for specified table: %s" % field
-                    )
+                    raise InvalidFieldError("Invalid field for specified table: %s" % field)
 
                 if direction == ORDER_ASC:
                     criterion = criterion.asc()
@@ -88,16 +78,12 @@ class MLQueryFragment(BaseMLQueryFragment):
                 table_name = field_parts[0]
                 field = field_parts[1]
                 if table_name not in tables:
-                    raise InvalidTableError(
-                        "Table does not exist in tables dictionary: %s" % table_name
-                    )
+                    raise InvalidTableError("Table does not exist in tables dictionary: %s" % table_name)
                 table = tables[table_name]
                 clause.field = field
             filter_criteria.append(clause.to_sqlalchemy(table))
             table = _table
-        filter_criteria.extend(
-            [sub_frag.to_sqlalchemy(table) for sub_frag in self.sub_fragments]
-        )
+        filter_criteria.extend([sub_frag.to_sqlalchemy(table) for sub_frag in self.sub_fragments])
 
         if self.op == OP_OR:
             return or_(*filter_criteria)
@@ -109,9 +95,7 @@ class MLQueryFragment(BaseMLQueryFragment):
 
 mlalchemy.structures.MLQuery = MLQuery
 mlalchemy.structures.MLQueryFragment = MLQueryFragment
-uncache_module(
-    exclude=["mlalchemy.structures", "mlalchemy.constants", "mlalchemy.errors"]
-)
+uncache_module(exclude=["mlalchemy.structures", "mlalchemy.constants", "mlalchemy.errors"])
 
 
 def parse_query(qd, session, config):
@@ -168,9 +152,7 @@ def parse_query(qd, session, config):
         full_qd["join_depth"] = full_qd["join_depth"] or 0
         full_qd["backref_depth"] = full_qd["backref_depth"] or 0
 
-    query.query_dict = OrderedDict(
-        sorted(full_qd.items(), key=lambda x: qd_key_sort.index(x[0]))
-    )
+    query.query_dict = OrderedDict(sorted(full_qd.items(), key=lambda x: qd_key_sort.index(x[0])))
 
     query = query.with_loaded_relations(
         full_qd["join_depth"],

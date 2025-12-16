@@ -176,9 +176,7 @@ def aslist(generator):
 
 
 def create_directory(dir_path):
-    absolute_dir_path = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.expanduser(dir_path))
-    )
+    absolute_dir_path = os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(dir_path)))
     if not os.path.exists(absolute_dir_path):
         os.makedirs(absolute_dir_path)
     return absolute_dir_path

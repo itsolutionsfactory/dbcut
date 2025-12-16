@@ -30,10 +30,7 @@ version = re.search(
 if not version:
     raise RuntimeError("Cannot find version information")
 
-extras_require = {
-    key: get_requirements(key)
-    for key in ["mysql", "postgresql", "profiler", "fastjson", "dev", "test"]
-}
+extras_require = {key: get_requirements(key) for key in ["mysql", "postgresql", "profiler", "fastjson", "dev", "test"]}
 
 setup(
     name="dbcut",
