@@ -16,6 +16,18 @@ Changed
 - Migrated from flake8/black/isort to ruff for linting and formatting
 - Minimum Python version is now 3.10 (dropped Python 2, 3.9)
 
+Fixed
+~~~~~
+- Fixed typo in pyproject.toml (``ddependencies`` -> ``dependencies``)
+- Fixed Docker build to install all extras (mysql, postgresql, profiler, fastjson)
+- Fixed Makefile to use ``uv pip show`` instead of ``pip show``
+
+
+Version 0.6.1.dev0
+------------------
+
+**unreleased**
+
 Version 0.6.0
 -------------
 
