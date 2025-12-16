@@ -1,6 +1,6 @@
 [project]
 name = "dbcut"
-version = "0.7.0.dev0"
+version = "0.7.0"
 description = "Extract a lightweight subset of your relational production database for development and testing purpose."
 readme = "README.rst"
 requires-python = ">=3.10"
