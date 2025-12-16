@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 import shutil
@@ -23,10 +22,13 @@ blue = lambda x, **kwargs: click.style("%s" % x, fg="blue", **kwargs)  # noqa
 red = lambda x, **kwargs: click.style("%s" % x, fg="red", **kwargs)  # noqa
 
 
-CONTEXT_SETTINGS = dict(auto_envvar_prefix="dbcut", help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {
+    "auto_envvar_prefix": "dbcut",
+    "help_option_names": ["-h", "--help"],
+}
 
 
-class Context(object):
+class Context:
     def __init__(self):
         self.flags = [
             "debug",
@@ -152,16 +154,16 @@ class Context(object):
         if getattr(self, flag_name, None) is False:
             setattr(self, flag_name, True)
             if flag_name == "interactive":
-                setattr(self, "force_yes", False)
+                self.force_yes = False
             elif flag_name == "force_yes":
-                setattr(self, "interactive", False)
+                self.interactive = False
             elif flag_name == "debug":
-                setattr(self, "verbose", True)
-                setattr(self, "quiet", False)
+                self.verbose = True
+                self.quiet = False
             elif flag_name == "verbose":
-                setattr(self, "quiet", False)
+                self.quiet = False
             elif flag_name == "quiet":
-                setattr(self, "verbose", False)
+                self.verbose = False
 
     def update_options(self, **kwargs):
         for name, value in kwargs.items():
@@ -213,7 +215,6 @@ re_color_codes = re.compile(r"\033\[(\d;)?\d+m")
 
 
 class AnsiColorFormatter(logging.Formatter):
-
     LEVELS = {
         "WARNING": red(" WARN"),
         "INFO": blue(" INFO"),
@@ -276,7 +277,6 @@ def profiler_option():
 
 def global_options(default_quiet=False):
     def decorator(f):
-
         options = [
             click.option(
                 "--verbose", is_flag=True, default=False, help="Enables verbose output."

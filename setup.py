@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import os.path as op
 import re
 from codecs import open
@@ -15,7 +14,7 @@ def read(fname):
 
 
 def get_requirements(basename):
-    return read("requirements/{}.txt".format(basename)).strip().split("\n")
+    return read(f"requirements/{basename}.txt").strip().split("\n")
 
 
 readme = read("README.rst")
@@ -50,7 +49,7 @@ setup(
     include_package_data=True,
     license="MIT license",
     zip_safe=False,
-    description="Extract a lightweight subset of your relational production database for development and testing purpose.",
+    description="Extract a lightweight subset of your production database.",
     long_description=readme + "\n\n" + changelog,
     keywords="dbcut",
     classifiers=[

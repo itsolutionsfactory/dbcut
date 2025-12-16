@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 
 import mlalchemy.structures
@@ -18,7 +17,8 @@ class MLQuery(BaseMLQuery):
     def to_query(self, session, tables):
         if not isinstance(tables, dict):
             raise TypeError(
-                "Supplied tables structure for MLQuery-to-SQLAlchemy query conversion must be a dictionary"
+                "Supplied tables structure for MLQuery-to-SQLAlchemy "
+                "query conversion must be a dictionary"
             )
         if self.table not in tables:
             raise InvalidTableError(
@@ -40,7 +40,7 @@ class MLQuery(BaseMLQuery):
         if self.order_by:
             criteria = []
             for order_by in self.order_by:
-                field, direction = [i for i in order_by.items()][0]
+                field, direction = list(order_by.items())[0]
                 criterion = getattr(table, field)
                 if not isinstance(criterion, QueryableAttribute):
                     raise InvalidFieldError(

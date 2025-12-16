@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sqlalchemy
 
 from .compiler import *  # noqa

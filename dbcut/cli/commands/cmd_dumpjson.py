@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import click
 
 from ..context import global_options, pass_context, profiler_option

@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
+import builtins
 import logging
 import os
 import pprint
 import sys
-from io import open
 
 import yaml
 
@@ -40,11 +37,11 @@ class Configuration(dict):
         """
         try:
             conf = {}
-            with open(filename, encoding="utf-8") as config_file:
+            with builtins.open(filename, encoding="utf-8") as config_file:
                 conf = yaml.safe_load(config_file.read())
             for k, v in conf.items():
                 self[k] = v
-        except IOError as e:
+        except OSError as e:
             e.strerror = "Unable to load configuration file (%s)" % e.strerror
             exc_type, exc_value, tb = sys.exc_info()
             reraise(exc_type, exc_value, tb.tb_next)

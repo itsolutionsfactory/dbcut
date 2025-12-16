@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # This module comes from the sqlalchemy-utils package
 # These functions have been slightly patched to support sqlalchemy 1.4+
 import os
@@ -174,16 +173,17 @@ def create_database(url, encoding="utf8", template=None):
         if not template:
             template = "template1"
 
-        sql_text = "CREATE DATABASE {0} ENCODING '{1}' TEMPLATE {2}".format(
-            quote(engine, database), encoding, quote(engine, template)
+        sql_text = (
+            f"CREATE DATABASE {quote(engine, database)} "
+            f"ENCODING '{encoding}' TEMPLATE {quote(engine, template)}"
         )
 
         with engine.connect() as connection:
             connection.execute(text(sql_text))
 
     elif dialect_name == "mysql":
-        sql_text = "CREATE DATABASE {0} CHARACTER SET = '{1}'".format(
-            quote(engine, database), encoding
+        sql_text = (
+            f"CREATE DATABASE {quote(engine, database)} CHARACTER SET = '{encoding}'"
         )
         with engine.connect() as connection:
             connection.execute(text(sql_text))
@@ -195,7 +195,7 @@ def create_database(url, encoding="utf8", template=None):
                 connection.execute(text("DROP TABLE DB;"))
 
     else:
-        sql_text = "CREATE DATABASE {0}".format(quote(engine, database))
+        sql_text = f"CREATE DATABASE {quote(engine, database)}"
         with engine.connect() as connection:
             connection.execute(text(sql_text))
 
@@ -255,10 +255,10 @@ def drop_database(url):
             connection.execute(text(sql_text))
 
             # Drop the database.
-            sql_text = "DROP DATABASE {0}".format(quote(connection, database))
+            sql_text = f"DROP DATABASE {quote(connection, database)}"
             connection.execute(text(sql_text))
     else:
-        sql_text = "DROP DATABASE {0}".format(quote(engine, database))
+        sql_text = f"DROP DATABASE {quote(engine, database)}"
         with engine.connect() as connection:
             connection.execute(text(sql_text))
 

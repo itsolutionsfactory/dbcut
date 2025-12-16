@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-# coding: utf-8
-from __future__ import print_function, unicode_literals
 
+import builtins
 import datetime
 import os
 import re
 import subprocess
 from argparse import ArgumentParser, FileType, RawTextHelpFormatter
-from io import open
 
 
 def generate_changelog_title(version):
@@ -57,27 +55,25 @@ def bump_release_version(args):
     current_version_title = generate_changelog_title(current_version)
     release_version_title = generate_changelog_title(release_version)
     changes = ""
-    with open(changelog) as fd:
+    with builtins.open(changelog) as fd:
         changes += fd.read()
 
     changes = changes.replace(current_version_title, release_version_title).replace(
         "**unreleased**", "Released on %s" % date
     )
 
-    with open(changelog, "w") as fd:
+    with builtins.open(changelog, "w") as fd:
         fd.write(changes)
 
     # Tries to load the EDITOR environment variable, else falls back to vim
     editor = os.environ.get("EDITOR", "vim")
-    os.system("{} {}".format(editor, changelog))
+    os.system(f"{editor} {changelog}")
 
     subprocess.check_output(["python", "setup.py", "sdist"])
 
     # Have to add it so it will be part of the commit
     subprocess.check_output(["git", "add", changelog])
-    subprocess.check_output(
-        ["git", "commit", "-m", "Changelog for {}".format(release_version)]
-    )
+    subprocess.check_output(["git", "commit", "-m", f"Changelog for {release_version}"])
 
     # Really run bumpver to set the new release and tag
     bv_args = ["bumpversion", "release"]
@@ -124,27 +120,25 @@ def bump_new_version(args):
     next_release_template = "%s\n\n**unreleased**\n\n" % next_version_title
 
     changes = ""
-    with open(changelog) as fd:
+    with builtins.open(changelog) as fd:
         changes += fd.read()
 
     changes = changes.replace(
         current_version_title, next_release_template + current_version_title
     )
 
-    with open(changelog, "w") as fd:
+    with builtins.open(changelog, "w") as fd:
         fd.write(changes)
 
     # Tries to load the EDITOR environment variable, else falls back to vim
     editor = os.environ.get("EDITOR", "vim")
-    os.system("{} {}".format(editor, changelog))
+    os.system(f"{editor} {changelog}")
 
     subprocess.check_output(["python", "setup.py", "sdist"])
 
     # Have to add it so it will be part of the commit
     subprocess.check_output(["git", "add", changelog])
-    subprocess.check_output(
-        ["git", "commit", "-m", "Changelog for {}".format(next_version)]
-    )
+    subprocess.check_output(["git", "commit", "-m", f"Changelog for {next_version}"])
 
     # Really run bumpver to set the new release and tag
     bv_args = ["bumpversion", part, "--no-tag", "--new-version", next_version]

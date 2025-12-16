@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 from contextlib import contextmanager
 from itertools import chain
@@ -39,7 +38,6 @@ def db_profiling(ctx):
 
 
 def get_objects_generator(ctx, query, session):
-
     if ctx.no_cache or ctx.force_refresh or not query.is_cached:
         using_cache = False
         count = query.count()
@@ -104,7 +102,7 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
 
     if continue_operation:
         if using_cache:
-            ctx.log(" ---> Using cache ({} elements)".format(count), quietable=True)
+            ctx.log(f" ---> Using cache ({count} elements)", quietable=True)
         else:
             ctx.log(" ---> Executing query")
 
@@ -116,11 +114,11 @@ def copy_query(ctx, query, session, query_index, number_of_queries):
             save_query_cache(ctx, query, objects_to_serialize)
 
             if ctx.export_json:
-                ctx.log(" ---> Exporting json to {}".format(query.json_file))
+                ctx.log(f" ---> Exporting json to {query.json_file}")
                 query.export_to_json(objects_to_serialize)
             else:
                 session.add_all(objects_to_serialize)
-                ctx.log(" ---> Inserting {} rows".format(len(list(session))))
+                ctx.log(f" ---> Inserting {len(list(session))} rows")
                 session.commit()
 
         else:
@@ -175,9 +173,7 @@ def flush(ctx):
 def clear(ctx):
     if database_exists(ctx.dest_db_uri):
         ctx.confirm("Removes ALL data from %s" % repr(ctx.dest_db_uri), default=False)
-        ctx.log(
-            " ---> Removing all data from {} database".format(repr(ctx.dest_db_uri))
-        )
+        ctx.log(f" ---> Removing all data from {repr(ctx.dest_db_uri)} database")
         ctx.dest_db.delete_all()
 
 
@@ -188,7 +184,7 @@ def load(ctx):
 
 
 def inspect_db(ctx):
-    infos = dict()
+    infos = {}
     for table_name, size in ctx.src_db.count_all(estimate=ctx.estimate):
         infos[table_name] = {"src_db_size": size, "dest_db_size": 0, "diff": size}
     for table_name, size in ctx.dest_db.count_all():
@@ -232,7 +228,7 @@ def purge_cache(ctx):
     included_extensions = ["cache", "count"]
 
     def listfiles(path):
-        for r, d, f in os.walk(path):
+        for r, _d, f in os.walk(path):
             for file in f:
                 yield os.path.join(r, file)
 

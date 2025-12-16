@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
 from collections import OrderedDict
 
 from sqlalchemy import inspect
-from sqlalchemy.ext.declarative import DeclarativeMeta, declared_attr
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.state import InstanceState
 
 from .generated_models import register_new_model
 from .utils import classproperty
 
 
-class BaseModel(object):
-
+class BaseModel:
     _db = None
     __table_args__ = {"sqlite_autoincrement": True}
 
@@ -29,7 +27,9 @@ class BaseModel(object):
             ordering_list = [c.desc() for c in cls.__table__.primary_key.columns]
             return ordering_list
 
-    def __to_dict__(self, excluded_keys=set()):
+    def __to_dict__(self, excluded_keys=None):
+        if excluded_keys is None:
+            excluded_keys = set()
         return {
             key: getattr(self, key)
             for key in get_entity_loaded_propnames(self, excluded_keys)
@@ -47,7 +47,7 @@ class BaseDeclarativeMeta(DeclarativeMeta):
         return c
 
     def __init__(self, name, bases, d):
-        super(BaseDeclarativeMeta, self).__init__(name, bases, d)
+        super().__init__(name, bases, d)
         if self._db is not None:
             self._db._model_class_registry[name] = self
 

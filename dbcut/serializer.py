@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
+import builtins
 import datetime
 import decimal
 import json
 import uuid
 from collections import OrderedDict
-from io import open
 
 import yaml
 from sqlalchemy.orm import Query
@@ -13,12 +12,10 @@ from .utils import to_unicode
 
 
 def new_json_encoder():
-
     _visited_objs = []
 
     class JSONEncoder(json.JSONEncoder):
         def default(self, obj):
-
             if isinstance(obj, datetime.datetime):
                 representation = obj.isoformat()
                 if representation.endswith("+00:00"):
@@ -48,8 +45,8 @@ def new_json_encoder():
                 except Exception:
                     pass
             elif hasattr(obj, "__iter__"):
-                return list(item for item in obj)
-            return super(JSONEncoder, self).default(obj)
+                return list(obj)
+            return super().default(obj)
 
     return JSONEncoder
 
@@ -68,13 +65,13 @@ def to_json(data, **extra_kwargs):
 
 def dump_json(data, filepath):
     """Serialize ``data`` as a JSON formatted stream to ``filepath``"""
-    with open(filepath, "w", encoding="utf-8") as fd:
+    with builtins.open(filepath, "w", encoding="utf-8") as fd:
         fd.write(to_json(data))
 
 
 def load_json(filepath):
     """Deserialize ``filepath`` to a Python object."""
-    with open(filepath, "r", encoding="utf-8") as fd:
+    with builtins.open(filepath, encoding="utf-8") as fd:
         return json.load(fd)
 
 

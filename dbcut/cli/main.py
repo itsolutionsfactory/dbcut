@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import os
 import os.path as op
-import sys
 
 import click
 
@@ -21,8 +19,6 @@ class DbcutMultiCommand(click.MultiCommand):
         return sorted(commands, key=lambda x: order.index(x) if x in order else 100)
 
     def get_command(self, ctx, name):
-        if sys.version_info[0] == 2:
-            name = name.encode("ascii", "replace")
         if name in self.list_commands(ctx):
             mod = __import__("dbcut.cli.commands.cmd_" + name, None, None, ["cli"])
             return mod.cli
@@ -49,7 +45,7 @@ def load_configuration_file(ctx, param, value):
 @global_options()
 @pass_context
 def main(ctx, **kwargs):
-    """Extract a lightweight subset of your production DB for development and testing purpose."""
+    """Extract a lightweight subset of your production DB for development."""
     if ctx.config["cache"] is None:
         ctx.no_cache = True
     pass

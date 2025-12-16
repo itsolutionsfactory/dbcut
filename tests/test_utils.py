@@ -1,4 +1,3 @@
-import unittest
 from collections import OrderedDict
 
 from dbcut.utils import sorted_nested_dict

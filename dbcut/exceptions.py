@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 class UndefinedError(Exception):
     def __init__(self, keyname):
         self.keyname = keyname

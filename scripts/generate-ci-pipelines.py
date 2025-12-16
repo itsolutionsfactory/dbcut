@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-# coding: utf-8
+import builtins
 import itertools
 import os
 import re
-from io import open
 
 import yaml
 from jinja2 import Template
@@ -12,12 +11,12 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(fname):
-    with open(os.path.join(HERE, "..", fname), "r") as fd:
+    with builtins.open(os.path.join(HERE, "..", fname)) as fd:
         return fd.read()
 
 
 def write(content, fname):
-    with open(os.path.join(HERE, "..", fname), "w") as fd:
+    with builtins.open(os.path.join(HERE, "..", fname), "w") as fd:
         fd.write(content)
 
 

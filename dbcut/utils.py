@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# coding: utf8
 import itertools
 import os
 import pickle
@@ -109,7 +107,7 @@ def merge_dicts(*dict_args):
     return result
 
 
-class CachedProperty(object):
+class CachedProperty:
     """A property that is only computed once per instance and then replaces
     itself with an ordinary attribute. Deleting the attribute resets the
     property."""
@@ -152,7 +150,9 @@ class classproperty(object):  # noqa
         return self.fget(owner_cls)
 
 
-def generate_valid_index_name(index, dialect, exclude=[]):
+def generate_valid_index_name(index, dialect, exclude=None):
+    if exclude is None:
+        exclude = []
     table_name = index.table.name
     columns_names = "_".join([cn.name for cn in index.columns])
     if index.unique:
@@ -161,7 +161,7 @@ def generate_valid_index_name(index, dialect, exclude=[]):
         index_name = "%s_%s_idx" % (table_name, columns_names)
 
     for indice in itertools.count(start=1):
-        full_index_name = "{}_{}".format(index_name, indice)
+        full_index_name = f"{index_name}_{indice}"
         if full_index_name not in exclude:
             return full_index_name
 
@@ -184,7 +184,7 @@ def create_directory(dir_path):
     return absolute_dir_path
 
 
-class VoidObject(object):
+class VoidObject:
     def __init__(*args, **kwargs):
         pass
 
@@ -258,9 +258,9 @@ def monkeypatched(owner, attr, value):
 
 
 def get_directory_size(directory):
-    """ " Get directory disk usage in MB"""
+    """Get directory disk usage in MB."""
     directory_size = 0
-    for path, dirs, files in os.walk(directory):
+    for path, _dirs, files in os.walk(directory):
         for file in files:
             directory_size += os.path.getsize(os.path.join(path, file))
     return directory_size / (1024 * 1024.0)

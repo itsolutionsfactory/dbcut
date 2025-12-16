@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from sqlalchemy import event
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
@@ -15,7 +14,7 @@ class BaseSession(Session):
         query_cls = options.pop("query_cls", None) or db.query_class
 
         session_options = merge_dicts(
-            dict(autocommit=False, autoflush=False), db._session_options
+            {"autocommit": False, "autoflush": False}, db._session_options
         )
 
         Session.__init__(self, bind=bind, query_cls=query_cls, **session_options)
@@ -30,8 +29,7 @@ class BaseSession(Session):
             )
 
 
-class SessionProperty(object):
-
+class SessionProperty:
     _scoped_sessions = {}
 
     def __init__(self, db=None):
@@ -49,7 +47,6 @@ class SessionProperty(object):
         if self.db is not None:
             obj = self.db
         if obj is not None:
-
             if obj not in self._scoped_sessions:
                 self._scoped_sessions[obj] = self._create_scoped_session(obj)
 

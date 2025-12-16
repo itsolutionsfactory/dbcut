@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import os
 import pickle
 import re
@@ -42,7 +39,7 @@ _MYSQL_LENGHT_TEXT_INDEX_COLUMN = 128
 __all__ = ["Database"]
 
 
-class Database(object):
+class Database:
     """This class is used to instantiate a SQLAlchemy connection to
     a database.
     """
@@ -101,7 +98,7 @@ class Database(object):
             )
         else:
             db_cache_dir = os.path.join(self.uri.drivername, self.uri.database)
-        cache_version = "{}-sa-{}".format(VERSION, sqlalchemy.__version__)
+        cache_version = f"{VERSION}-sa-{sqlalchemy.__version__}"
         _cache_dir = os.path.join(self.global_cache_dir, cache_version, db_cache_dir)
         create_directory(_cache_dir)
         return _cache_dir
@@ -139,7 +136,7 @@ class Database(object):
             try:
                 with open(os.path.join(self.cached_metadata_path), "rb") as cache_file:
                     _cached_metadata = pickle.load(file=cache_file)
-            except IOError:
+            except OSError:
                 pass
         return _cached_metadata
 
@@ -286,7 +283,7 @@ class Database(object):
 
     @contextmanager
     def no_fkc_session(self):
-        """A context manager that give a session with all foreign key constraints disabled."""
+        """Context manager giving a session with FK constraints disabled."""
         scoped_session = self.session
         try:
             scoped_session.remove()
@@ -330,16 +327,15 @@ class Database(object):
     def count_all(self, estimate=True):
         metadata = MetaData()
         metadata.reflect(bind=self.engine)
-        tables = dict(((t.name, t) for t in metadata.sorted_tables))
+        tables = {t.name: t for t in metadata.sorted_tables}
         table_names = list(tables.keys())
         with self.engine.connect() as con:
             if estimate and self.dialect == "mysql":
-                rows = con.execute(
-                    text(
-                        "SELECT table_name, table_rows FROM information_schema.tables where table_schema = '%s'"
-                        % self.engine.url.database
-                    )
-                ).fetchall()
+                query = (
+                    "SELECT table_name, table_rows FROM information_schema.tables "
+                    f"where table_schema = '{self.engine.url.database}'"
+                )
+                rows = con.execute(text(query)).fetchall()
                 for row in rows:
                     # In SQLAlchemy 1.4+, use tuple indices
                     table_name, table_rows = row[0], row[1]
@@ -457,7 +453,7 @@ class Database(object):
         return "<%s engine=%r>" % (self.__class__.__name__, engine)
 
 
-class EngineConnector(object):
+class EngineConnector:
     def __init__(self, db, connect_timeout=3):
         self._db = db
         self._engine = None

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from sqlalchemy.dialects import mysql
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import Insert

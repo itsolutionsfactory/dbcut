@@ -25,7 +25,7 @@ class Recorder:
 
     @property
     def record_path(self):
-        return "{}.json".format(os.path.join(self.output_dir, self.name))
+        return f"{os.path.join(self.output_dir, self.name)}.json"
 
     def open(self):
         if os.path.exists(self.record_path):
@@ -65,14 +65,13 @@ class Recorder:
 
 
 class CachingQuery(Query):
-
     recorder = None
     record_mode = None
     cached_keys = []
     iter_count = 0
 
     def fetch_from_database(self):
-        return list(super(CachingQuery, self).__iter__())
+        return list(super().__iter__())
 
     def fetch_from_cache(self):
         record = self.recorder.load_record(self.cache_key)
@@ -85,7 +84,7 @@ class CachingQuery(Query):
         else:
             if self.write_protected:
                 raise Exception(
-                    "Cannot overwrite existing record '{}'".format(self.recorder.name)
+                    f"Cannot overwrite existing record '{self.recorder.name}'"
                 )
             objects = self.fetch_from_database()
             self.recorder.records.append(self.dump_record(objects))

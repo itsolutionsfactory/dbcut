@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 import hashlib
 import os
 from pickle import PicklingError
-from weakref import WeakSet
 
 import yaml
 from pptree import print_tree
-from sqlalchemy import event
 from sqlalchemy.ext import serializer as sa_serializer
 from sqlalchemy.orm import (
     Bundle,
@@ -15,7 +12,6 @@ from sqlalchemy.orm import (
     interfaces,
     joinedload,
     selectinload,
-    subqueryload,
 )
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.session import make_transient, object_session
@@ -25,12 +21,11 @@ from .utils import aslist, cached_property, redirect_stdout, sorted_nested_dict
 
 
 class BaseQuery(Query):
-
     query_dict = None
     relation_tree = None
 
     def __init__(self, *args, **kwargs):
-        super(BaseQuery, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     class QueryStr(str):
         # Useful for debug
@@ -65,21 +60,21 @@ class BaseQuery(Query):
 
     @property
     def cache_basename(self):
-        basename = "{}-{}".format(self.model_class.__name__, self.cache_key)
+        basename = f"{self.model_class.__name__}-{self.cache_key}"
         return os.path.join(self.session.db.cache_dir, basename)
 
     @property
     def cache_file(self):
-        return "{}.cache".format(self.cache_basename)
+        return f"{self.cache_basename}.cache"
 
     @property
     def json_file(self):
-        basename = "{}-{}".format(self.model_class.__name__, self.cache_key)
-        return os.path.abspath(os.path.join(os.getcwd(), "{}.json".format(basename)))
+        basename = f"{self.model_class.__name__}-{self.cache_key}"
+        return os.path.abspath(os.path.join(os.getcwd(), f"{basename}.json"))
 
     @property
     def count_cache_file(self):
-        return "{}.count".format(self.cache_basename)
+        return f"{self.cache_basename}.count"
 
     @property
     def is_cached(self):
@@ -184,13 +179,11 @@ class BaseQuery(Query):
                     return []
                 direct_paths = [leaf_relationship]
                 other_relations = sorted(
-                    list(set(relations) - set([leaf_relationship])), key=lambda x: x[1]
+                    set(relations) - {leaf_relationship}, key=lambda x: x[1]
                 )
                 for relationship, path, weight, path_list in other_relations:
                     if path in leaf_relationship[1]:
-                        direct_paths.append(
-                            tuple([relationship, path, weight, path_list])
-                        )
+                        direct_paths.append((relationship, path, weight, path_list))
 
                 return direct_paths
 
@@ -239,8 +232,8 @@ class BaseQuery(Query):
 
         query.relation_tree = root_node
 
-        # Deduplicate loader options to avoid conflicts
-        # Keep only the longest paths to avoid applying multiple strategies on the same path
+        # Deduplicate loader options to avoid conflicts.
+        # Keep only the longest paths to avoid applying multiple strategies.
         deduplicated_relations = []
         seen_prefixes = set()
         for relationship, path, weight, path_list in sorted(
@@ -256,7 +249,7 @@ class BaseQuery(Query):
                 deduplicated_relations.append((relationship, path, weight, path_list))
                 seen_prefixes.add(path)
 
-        for relationship, path, weight, path_list in deduplicated_relations:
+        for relationship, _path, _weight, path_list in deduplicated_relations:
             # Determine the loader function based on relationship direction
             loader_func = None
             if relationship.direction is interfaces.ONETOMANY:
@@ -308,7 +301,7 @@ class BaseQuery(Query):
         return query
 
 
-class QueryProperty(object):
+class QueryProperty:
     def __init__(self, db):
         self.db = db
 
@@ -339,7 +332,7 @@ def render_query(query, reindent=True):
         return raw_sql
 
 
-class RelationTree(object):
+class RelationTree:
     def __init__(self, name, parent=None, relationship=None, weight=1):
         self.name = name
         self.parent = parent
@@ -352,9 +345,9 @@ class RelationTree(object):
                 interfaces.ONETOMANY,
                 interfaces.MANYTOMANY,
             ):
-                self.repr_name = "─ⁿ─{}".format(self.name)
+                self.repr_name = f"─ⁿ─{self.name}"
             else:
-                self.repr_name = "─¹─{}".format(self.name)
+                self.repr_name = f"─¹─{self.name}"
         else:
             self.repr_name = self.name
 
@@ -398,7 +391,7 @@ def get_relationship_path(relationship):
         key = relationship.key
     else:
         key = list(relationship.local_columns)[0].name
-    return "{}.{}".format(local_table_name, key)
+    return f"{local_table_name}.{key}"
 
 
 def get_relationship_reverse_path(relationship):
@@ -407,7 +400,7 @@ def get_relationship_reverse_path(relationship):
         key = list(relationship.remote_side)[0].name
     else:
         key = relationship.back_populates
-    return "{}.{}".format(remote_table_name, key)
+    return f"{remote_table_name}.{key}"
 
 
 def get_relationships_path(relationships):

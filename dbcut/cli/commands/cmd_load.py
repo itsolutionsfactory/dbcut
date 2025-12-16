@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # from functools import update_wrapper
 
 import click
@@ -10,7 +8,6 @@ from ..operations import load
 
 def load_options():
     def decorator(f):
-
         options = [
             click.option(
                 "--no-cache",
