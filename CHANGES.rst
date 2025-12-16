@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <http://keepachangelog.com/en/1.0.0/>`_, and this project adheres to `Semantic Versioning <http://semver.org/spec/v2.0.0.html>`_.
 
+Version 0.7.0.dev0
+------------------
+
+**unreleased**
+
+Changed
+~~~~~~~
+- Migrated from setuptools to uv for dependency management
+- Migrated from flake8/black/isort to ruff for linting and formatting
+- Minimum Python version is now 3.10 (dropped Python 2, 3.9)
+
+Fixed
+~~~~~
+- Fixed typo in pyproject.toml (``ddependencies`` -> ``dependencies``)
+- Fixed Docker build to install all extras (mysql, postgresql, profiler, fastjson)
+- Fixed Makefile to use ``uv pip show`` instead of ``pip show``
+
 
 Version 0.6.1.dev0
 ------------------
