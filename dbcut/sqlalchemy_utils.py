@@ -32,10 +32,7 @@ def get_bind(obj):
             conn = obj
 
     if not hasattr(conn, "execute"):
-        raise TypeError(
-            "This method accepts only Session, Engine, Connection and "
-            "declarative model objects."
-        )
+        raise TypeError("This method accepts only Session, Engine, Connection and declarative model objects.")
     return conn
 
 
@@ -105,10 +102,7 @@ def database_exists(url):
     elif dialect_name == "mysql":
         url = _set_url_database(url, database=None)
         engine = sa.create_engine(url, poolclass=NullPool)
-        sql_text = (
-            "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA "
-            "WHERE SCHEMA_NAME = '%s'" % database
-        )
+        sql_text = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s'" % database
         return bool(_get_scalar_result(engine, text(sql_text)))
 
     elif dialect_name == "sqlite":
@@ -173,18 +167,13 @@ def create_database(url, encoding="utf8", template=None):
         if not template:
             template = "template1"
 
-        sql_text = (
-            f"CREATE DATABASE {quote(engine, database)} "
-            f"ENCODING '{encoding}' TEMPLATE {quote(engine, template)}"
-        )
+        sql_text = f"CREATE DATABASE {quote(engine, database)} ENCODING '{encoding}' TEMPLATE {quote(engine, template)}"
 
         with engine.connect() as connection:
             connection.execute(text(sql_text))
 
     elif dialect_name == "mysql":
-        sql_text = (
-            f"CREATE DATABASE {quote(engine, database)} CHARACTER SET = '{encoding}'"
-        )
+        sql_text = f"CREATE DATABASE {quote(engine, database)} CHARACTER SET = '{encoding}'"
         with engine.connect() as connection:
             connection.execute(text(sql_text))
 

@@ -13,9 +13,7 @@ class BaseSession(Session):
         bind = options.pop("bind", None) or db.engine
         query_cls = options.pop("query_cls", None) or db.query_class
 
-        session_options = merge_dicts(
-            {"autocommit": False, "autoflush": False}, db._session_options
-        )
+        session_options = merge_dicts({"autocommit": False, "autoflush": False}, db._session_options)
 
         Session.__init__(self, bind=bind, query_cls=query_cls, **session_options)
 
@@ -24,9 +22,7 @@ class BaseSession(Session):
     def receive_do_orm_execute(self, orm_execute_state):
         if orm_execute_state.is_select:
             # Apply backref_limit to selectin queries
-            orm_execute_state.statement = _apply_backref_limit(
-                orm_execute_state.statement, self
-            )
+            orm_execute_state.statement = _apply_backref_limit(orm_execute_state.statement, self)
 
 
 class SessionProperty:
