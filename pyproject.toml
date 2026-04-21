@@ -24,7 +24,7 @@ dependencies = [
     "sqlalchemy==2.0.44",
     "mlalchemy==0.2.2",
     "pptree==3.1",
-    "python-dotenv==1.2.1",
+    "python-dotenv==1.2.2",
     "tabulate==0.9",
     "tqdm==4.67.1",
 ]
